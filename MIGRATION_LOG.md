@@ -27,6 +27,7 @@
 - Live data: Rankings (`app/rankings/page.tsx` server fetch + `RankingsTable.tsx` against real `rankings` columns: id, organization_id, team_name, tag, league, season, division, wins, losses, points, updated_at; no `position` column — rank computed per league from points, then win %, then wins; league match is case-insensitive; falls back to the sample RCML table if empty/error; empty league shows "standings open once Season 1 begins" row; public read via existing policy "Rankings are viewable by everyone"; confirmed live on localhost (5 RCML Season 4 teams); table currently holds only rcml / Season 4 / division 1)
 - Live data: Organizations (`app/organizations/page.tsx` server fetch + `OrgsGrid.tsx`; `organizations` columns: id, owner_id, name, tag, league, division, region, created_at — no stats columns, so rank / record / win % come from `rankings` (matched by `organization_id`, else by team name; rank = position within league by points, then win %, then wins); organizations without a ranking row show "—"; falls back to the sample list if `organizations` is empty/error; public read via existing policy "Organizations are viewable by everyone"; table was empty, so migrations/NNN_seed_organizations_from_rankings.sql created one organization per ranked team (5) and set `rankings.organization_id`; card links are `/org?name=<slug>` with slug derived from the name; confirmed on localhost)
 - Live data: Org profile (`app/org/page.tsx`, server component; finds the organization whose name slug matches `?name=`; shows name, tag, league, division, region from `organizations` and League Record rows (real season, W–L, win %) from `rankings` by `organization_id`, else team name; description, roster and socials use their existing placeholders because those columns/tables do not exist; falls back to the sample profiles only if `organizations` is empty/error, otherwise an unknown slug shows "Not Found")
+- Admin panel (`app/admin/page.tsx`, `app/admin/AdminClient.tsx`): server-side auth/admin gate; RLS-backed browser-client actions for registrations, game account verification, event ending, content CRUD, and administrator management; uses `R3ignDialog` confirmations, optimistic updates, per-section load errors, and inline action feedback. Live Supabase schema/policies were checked; `events.ended_at` and `game_accounts.verification_status` already existed. Applied and recorded the missing admin policies in `../migrations/admin-panel-rls.sql` (admin registration read/update and admin promotion/removal). Verification queue uses `game_accounts`.
 
 ## In Progress
 - Optional messages polish (typing indicator, soft-delete, etc. — user picks)
@@ -35,10 +36,9 @@
 1. Roster for org profiles (no table links players to organizations; `game_profiles.team_clan` is free text — propose a link table + RLS design and wait for approval before building)
 2. Live data for remaining sample-backed browse pages (candidate tables: `match_results`, `bracket_matches`, `tournaments`, `award_winners`, `match_highlights`, `news_posts`; check each against the repo)
 3. Nav account menu / post-verify session refresh (if still flaky)
-4. Admin (registration review; "End event" action that sets `events.ended_at`; `events` already has admin-only write policies via the `admins` table; `organizations` has none — admin edits will need new policies)
-5. TikTok OAuth → `app/api/` route handlers
-6. Resend SMTP for auth email (after Vercel host)
-7. PWA + legacy cleanup (last)
+4. TikTok OAuth → `app/api/` route handlers
+5. Resend SMTP for auth email (after Vercel host)
+6. PWA + legacy cleanup (last)
 
 ## Decisions Made
 - Supabase remains backend (DB, auth, RLS); browser via `@supabase/ssr`
@@ -70,7 +70,6 @@
 | (n/a — new) | `components/OnlinePresenceProvider.tsx`, `components/Providers.tsx` |
 
 ## Known Issues
-- No UI yet for admins to end an event; until the Admin page exists, set `ended_at` in the Supabase table editor or SQL. An unended event stays under Ongoing (Live Now) even after its scheduled end time
 - `organizations` currently holds only the 5 teams seeded from `rankings`; the "50+ Registered Orgs" eyebrow on /organizations is static text; seeded orgs have no `region`, so profiles show "Region not set" until set
 - Org profile description, roster and socials have no database columns/tables yet; they show placeholders
 - Build warnings (non-blocking): multiple lockfiles / workspace root inference; `metadataBase` not set
