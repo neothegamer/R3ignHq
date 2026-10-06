@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import SiteSearch from "@/components/SiteSearch";
 
 export type EventItem = {
   id: string;
@@ -227,6 +228,7 @@ export default function EventsClient({
 }) {
   const [tab, setTab] = useState<Tab>("upcoming");
   const [now, setNow] = useState<number | null>(null);
+  const [query, setQuery] = useState("");
 
   useEffect(() => {
     setNow(Date.now());
@@ -255,8 +257,22 @@ export default function EventsClient({
     };
   }, [events, live, now]);
 
+  const searchEvents = (items: EventItem[]) => {
+    const term = query.trim().toLowerCase();
+    if (!term) return items;
+    return items.filter((event) =>
+      `${event.title} ${event.description ?? ""} ${event.league ?? ""} ${event.location ?? ""}`
+        .toLowerCase()
+        .includes(term)
+    );
+  };
+  const visibleUpcoming = searchEvents(upcoming);
+  const visibleOngoing = searchEvents(ongoing);
+  const visiblePast = searchEvents(past);
+
   return (
     <>
+      <SiteSearch value={query} onChange={setQuery} placeholder="Search events…" />
       <div className="filter-bar" role="tablist" aria-label="Events view">
         <button
           className="filter-chip"
@@ -293,15 +309,17 @@ export default function EventsClient({
       {ready && tab === "upcoming" && (
         <div>
           <div className="events-grid">
-            {upcoming.length === 0 ? (
+            {visibleUpcoming.length === 0 ? (
               <p
                 className="field-hint center"
                 style={{ gridColumn: "1 / -1", marginTop: "1.5rem" }}
               >
-                No upcoming events scheduled yet.
+                {query.trim()
+                  ? "No upcoming events match your search."
+                  : "No upcoming events scheduled yet."}
               </p>
             ) : (
-              upcoming.map((ev) => <EventCard key={ev.id} ev={ev} />)
+              visibleUpcoming.map((ev) => <EventCard key={ev.id} ev={ev} />)
             )}
           </div>
         </div>
@@ -310,15 +328,17 @@ export default function EventsClient({
       {ready && tab === "ongoing" && (
         <div>
           <div className="events-grid">
-            {ongoing.length === 0 ? (
+            {visibleOngoing.length === 0 ? (
               <p
                 className="field-hint center"
                 style={{ marginTop: "1.5rem" }}
               >
-                Nothing is live right now — check Upcoming Events above.
+                {query.trim()
+                  ? "No ongoing events match your search."
+                  : "Nothing is live right now — check Upcoming Events above."}
               </p>
             ) : (
-              ongoing.map((ev) => (
+              visibleOngoing.map((ev) => (
                 <EventCard key={ev.id} ev={ev} showLiveBadge />
               ))
             )}
@@ -329,15 +349,17 @@ export default function EventsClient({
       {ready && tab === "past" && (
         <div>
           <div className="events-grid">
-            {past.length === 0 ? (
+            {visiblePast.length === 0 ? (
               <p
                 className="field-hint center"
                 style={{ gridColumn: "1 / -1", marginTop: "1.5rem" }}
               >
-                No past events yet.
+                {query.trim()
+                  ? "No past events match your search."
+                  : "No past events yet."}
               </p>
             ) : (
-              past.map((ev) => (
+              visiblePast.map((ev) => (
                 <EventCard key={ev.id} ev={ev} showActions={false} />
               ))
             )}

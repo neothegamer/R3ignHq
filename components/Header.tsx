@@ -2,39 +2,162 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, useEffect, type ReactNode } from "react";
-import SiteSearch from "@/components/SiteSearch";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type ReactNode,
+} from "react";
 
 type Props = {
   /** Server-rendered account area — avoids client flash */
   accountSlot: ReactNode;
 };
 
+const NAV_GROUPS = [
+  {
+    label: "Home",
+    href: "/",
+    children: [{ label: "About", href: "/about" }],
+  },
+  {
+    label: "Leagues",
+    href: "/leagues",
+    children: [
+      { label: "Rankings", href: "/rankings" },
+      { label: "Divisions", href: "/divisions" },
+      { label: "Brackets", href: "/brackets" },
+      { label: "Awards", href: "/awards" },
+    ],
+  },
+  {
+    label: "Events",
+    href: "/events",
+    children: [
+      { label: "Highlights", href: "/match-highlights" },
+      { label: "News", href: "/news" },
+      { label: "Community", href: "/community" },
+    ],
+  },
+  {
+    label: "Organizations",
+    href: "/organizations",
+    children: [{ label: "Player Market", href: "/player-market" }],
+  },
+] as const;
+
 export default function Header({ accountSlot }: Props) {
   const pathname = usePathname();
+  const navRef = useRef<HTMLElement>(null);
+  const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [openDropdown, setOpenDropdown] = useState<number | null>(null);
 
   useEffect(() => {
     setMenuOpen(false);
+    setOpenDropdown(null);
   }, [pathname]);
 
   useEffect(() => {
-    const header = document.querySelector(".site-header") as HTMLElement;
+    const header = document.querySelector(".site-header");
     if (!header) return;
     const sync = () => {
       document.documentElement.style.setProperty(
         "--header-h",
-        `${header.offsetHeight}px`
+        `${header.getBoundingClientRect().height}px`
       );
     };
     sync();
-    window.addEventListener("resize", sync);
-    return () => window.removeEventListener("resize", sync);
+    const observer = new ResizeObserver(sync);
+    observer.observe(header);
+    return () => observer.disconnect();
   }, []);
+
+  useEffect(() => {
+    const onPointerDown = (event: PointerEvent) => {
+      if (!navRef.current?.contains(event.target as Node)) {
+        setOpenDropdown(null);
+      }
+    };
+    const onKeyDown = (event: globalThis.KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpenDropdown(null);
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (hoverTimer.current) clearTimeout(hoverTimer.current);
+    },
+    []
+  );
 
   const isActive = (href: string) => {
     if (href === "/") return pathname === "/";
-    return pathname.startsWith(href);
+    return pathname === href || pathname.startsWith(`${href}/`);
+  };
+
+  const clearHoverTimer = () => {
+    if (hoverTimer.current) {
+      clearTimeout(hoverTimer.current);
+      hoverTimer.current = null;
+    }
+  };
+
+  const openOnHover = (index: number) => {
+    if (window.matchMedia("(max-width: 1100px)").matches) return;
+    clearHoverTimer();
+    hoverTimer.current = setTimeout(() => setOpenDropdown(index), 100);
+  };
+
+  const closeOnHoverLeave = () => {
+    if (window.matchMedia("(max-width: 1100px)").matches) return;
+    clearHoverTimer();
+    hoverTimer.current = setTimeout(() => setOpenDropdown(null), 140);
+  };
+
+  const handleMenuKeyDown = (
+    event: ReactKeyboardEvent<HTMLUListElement>,
+    index: number
+  ) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      setOpenDropdown(null);
+      navRef.current
+        ?.querySelector<HTMLButtonElement>(`[aria-controls="nav-menu-${index}"]`)
+        ?.focus();
+      return;
+    }
+    if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
+    const menu = event.currentTarget.querySelector<HTMLElement>(
+      `[data-menu-index="${index}"]`
+    );
+    const items = menu
+      ? Array.from(menu.querySelectorAll<HTMLElement>('[role="menuitem"]'))
+      : [];
+    if (items.length === 0) return;
+    event.preventDefault();
+    setOpenDropdown(index);
+    if (event.key === "Home") items[0].focus();
+    else if (event.key === "End") items[items.length - 1].focus();
+    else {
+      const current = items.indexOf(event.target as HTMLElement);
+      if (current < 0) {
+        (event.key === "ArrowDown" ? items[0] : items[items.length - 1]).focus();
+      } else {
+        const offset = event.key === "ArrowDown" ? 1 : -1;
+        items[(current + offset + items.length) % items.length].focus();
+      }
+    }
   };
 
   return (
@@ -55,104 +178,108 @@ export default function Header({ accountSlot }: Props) {
           </span>
         </Link>
 
-        <nav aria-label="Primary">
-          <ul className={`nav-links ${menuOpen ? "is-open" : ""}`} id="nav-links">
-            <li>
-              <Link href="/" aria-current={isActive("/") ? "page" : undefined}>
-                Home
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/leagues"
-                aria-current={isActive("/leagues") ? "page" : undefined}
-              >
-                Leagues
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/rankings"
-                aria-current={isActive("/rankings") ? "page" : undefined}
-              >
-                Rankings
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/events"
-                aria-current={isActive("/events") ? "page" : undefined}
-              >
-                Events
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/organizations"
-                aria-current={isActive("/organizations") ? "page" : undefined}
-              >
-                Organizations
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/player-market"
-                aria-current={isActive("/player-market") ? "page" : undefined}
-              >
-                Player Market
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/match-highlights"
-                aria-current={
-                  isActive("/match-highlights") ? "page" : undefined
-                }
-              >
-                Highlights
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/news"
-                aria-current={isActive("/news") ? "page" : undefined}
-              >
-                News
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/about"
-                aria-current={isActive("/about") ? "page" : undefined}
-              >
-                About
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/support"
-                aria-current={isActive("/support") ? "page" : undefined}
-              >
-                Support
-              </Link>
-            </li>
-            <li className="nav-links-signin">
-              <Link href="/signin">Sign In</Link>
-            </li>
+        <nav aria-label="Primary" ref={navRef}>
+          <ul
+            className={`nav-links ${menuOpen ? "is-open" : ""}`}
+            id="nav-links"
+            onKeyDown={(event) =>
+              openDropdown !== null &&
+              handleMenuKeyDown(event, openDropdown)
+            }
+          >
+            {NAV_GROUPS.map((group, index) => {
+              const active =
+                isActive(group.href) ||
+                group.children.some((child) => isActive(child.href));
+              const dropdownOpen = openDropdown === index;
+              const menuId = `nav-menu-${index}`;
+              return (
+                <li
+                  className={`nav-group${dropdownOpen ? " is-open" : ""}`}
+                  key={group.label}
+                  onMouseEnter={() => openOnHover(index)}
+                  onMouseLeave={closeOnHoverLeave}
+                  onBlur={(event) => {
+                    if (
+                      !event.currentTarget.contains(event.relatedTarget as Node)
+                    ) {
+                      setOpenDropdown(null);
+                    }
+                  }}
+                >
+                  <div className="nav-group-heading">
+                    <Link
+                      href={group.href}
+                      aria-current={isActive(group.href) ? "page" : undefined}
+                      className={active ? "is-section-active" : undefined}
+                      onClick={() => {
+                        setOpenDropdown(null);
+                        setMenuOpen(false);
+                      }}
+                    >
+                      {group.label}
+                    </Link>
+                    <button
+                      type="button"
+                      className="dropdown-toggle"
+                      aria-label={`${group.label} menu`}
+                      aria-haspopup="menu"
+                      aria-expanded={dropdownOpen}
+                      aria-controls={menuId}
+                      onClick={() => {
+                        clearHoverTimer();
+                        setOpenDropdown(dropdownOpen ? null : index);
+                      }}
+                    >
+                      <span aria-hidden="true" />
+                    </button>
+                  </div>
+                  <ul
+                    className={`dropdown-menu${dropdownOpen ? " is-open" : ""}`}
+                    id={menuId}
+                    role="menu"
+                    aria-label={`${group.label} links`}
+                    data-menu-index={index}
+                    hidden={!dropdownOpen}
+                  >
+                    {group.children.map((child) => (
+                      <li key={child.href} role="none">
+                        <Link
+                          href={child.href}
+                          role="menuitem"
+                          tabIndex={dropdownOpen ? 0 : -1}
+                          aria-current={
+                            isActive(child.href) ? "page" : undefined
+                          }
+                          onClick={() => {
+                            setOpenDropdown(null);
+                            setMenuOpen(false);
+                          }}
+                        >
+                          {child.label}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </li>
+              );
+            })}
           </ul>
         </nav>
 
         <div className="nav-cta">
-          <SiteSearch />
           {accountSlot}
           <button
             className="nav-toggle"
             aria-expanded={menuOpen}
             aria-controls="nav-links"
-            aria-label="Toggle menu"
-            onClick={() => setMenuOpen(!menuOpen)}
+            aria-label={menuOpen ? "Close navigation menu" : "Open navigation menu"}
+            onClick={() => {
+              setMenuOpen((open) => !open);
+              setOpenDropdown(null);
+            }}
           >
-            <span></span>
+            <span />
           </button>
         </div>
       </div>

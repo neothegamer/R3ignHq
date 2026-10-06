@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import SiteSearch from "@/components/SiteSearch";
 
 type Listing = {
   id: string;
@@ -13,7 +14,11 @@ type Listing = {
   league: string | null;
   region: string | null;
   profile_screenshot_path?: string | null;
-  profile?: { display_name?: string | null } | null;
+  profile?: {
+    display_name?: string | null;
+    league_id?: string | null;
+    avatar_url?: string | null;
+  } | null;
 };
 
 export default function MarketClient() {
@@ -24,6 +29,7 @@ export default function MarketClient() {
   const [listings, setListings] = useState<Listing[]>([]);
   const [loadingList, setLoadingList] = useState(true);
   const [listError, setListError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const [ign, setIgn] = useState("");
   const [role, setRole] = useState("");
@@ -35,13 +41,19 @@ export default function MarketClient() {
   const [formError, setFormError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const visibleListings = listings.filter((listing) =>
+    `${listing.ign} ${listing.role} ${listing.notes ?? ""} ${listing.league ?? ""} ${listing.region ?? ""}`
+      .toLowerCase()
+      .includes(searchQuery.trim().toLowerCase())
+  );
 
   const loadListings = useCallback(async () => {
     setLoadingList(true);
     setListError(null);
     const { data, error } = await supabase
       .from("player_listings")
-      .select("*, profile:profiles(display_name)")
+      .select("*, profile:profiles(display_name,league_id,avatar_url)")
+      .eq("status", "active")
       .order("created_at", { ascending: false })
       .limit(24);
 
@@ -154,6 +166,11 @@ export default function MarketClient() {
     <>
       <section className="section-tight">
         <div className="wrap">
+          <SiteSearch
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Search players…"
+          />
           {listError && (
             <div className="auth-error is-visible" style={{ marginBottom: "1rem" }}>
               {listError}
@@ -168,8 +185,12 @@ export default function MarketClient() {
               <p className="field-hint" style={{ padding: "1.25rem" }}>
                 No listings yet — be the first to list yourself below.
               </p>
+            ) : visibleListings.length === 0 ? (
+              <p className="field-hint" style={{ padding: "1.25rem" }}>
+                No player listings match your search.
+              </p>
             ) : (
-              listings.map((listing) => {
+              visibleListings.map((listing) => {
                 const isOwn = userId && listing.profile_id === userId;
                 const canMessage =
                   listing.profile_id && !isOwn && userId;
@@ -180,7 +201,35 @@ export default function MarketClient() {
                 return (
                   <div key={listing.id} className="market-card">
                     <div className="role">{listing.role || "Player"}</div>
-                    <h3>{listing.ign || "Player"}</h3>
+                    <div className="market-player-identity">
+                      {listing.profile?.avatar_url &&
+                        (listing.profile.league_id ? (
+                          <Link
+                            href={`/player/${encodeURIComponent(listing.profile.league_id)}`}
+                            aria-label={`View ${listing.profile.display_name || listing.ign || "player"} profile`}
+                          >
+                            <img src={listing.profile.avatar_url} alt="" />
+                          </Link>
+                        ) : (
+                          <img src={listing.profile.avatar_url} alt="" />
+                        ))}
+                      <h3>
+                        {listing.profile?.league_id ? (
+                          <Link
+                            href={`/player/${encodeURIComponent(listing.profile.league_id)}`}
+                          >
+                            {listing.profile.display_name || listing.ign || "Player"}
+                          </Link>
+                        ) : (
+                          listing.profile?.display_name || listing.ign || "Player"
+                        )}
+                      </h3>
+                    </div>
+                    {listing.profile?.display_name &&
+                      listing.ign &&
+                      listing.profile.display_name !== listing.ign && (
+                        <p className="market-player-ign">IGN · {listing.ign}</p>
+                      )}
                     <p>
                       {listing.notes || "Available to join an organization."}
                     </p>

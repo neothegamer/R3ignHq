@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import SiteSearch from "@/components/SiteSearch";
 
 type NewsPost = {
   id: string;
@@ -77,14 +78,22 @@ function excerpt(body: string) {
 
 export default function NewsGrid() {
   const [filter, setFilter] = useState("all");
+  const [query, setQuery] = useState("");
 
-  const visible = SAMPLE_NEWS.filter((post) => {
-    if (filter === "all") return true;
-    return CATEGORY_TAG[post.category] === filter;
-  });
+  const visible = useMemo(
+    () =>
+      SAMPLE_NEWS.filter((post) => {
+        const matchesCategory =
+          filter === "all" || CATEGORY_TAG[post.category] === filter;
+        const searchable = `${post.title} ${post.category} ${post.body}`.toLowerCase();
+        return matchesCategory && searchable.includes(query.trim().toLowerCase());
+      }),
+    [filter, query]
+  );
 
   return (
     <>
+      <SiteSearch value={query} onChange={setQuery} placeholder="Search news…" />
       <div className="filter-bar">
         <button
           className="filter-chip"

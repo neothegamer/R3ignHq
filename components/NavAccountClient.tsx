@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 type Props = {
-  initial: string;
+  initial: string | null;
   avatarUrl: string | null;
   unreadCount: number;
 };
@@ -16,22 +16,40 @@ export default function NavAccountClient({
 }: Props) {
   const pathname = usePathname();
   const onMessages = pathname.startsWith("/messages");
-  const onSettings = pathname.startsWith("/profile-settings");
+  const onAccount =
+    pathname.startsWith("/account") ||
+    pathname.startsWith("/profile-settings");
 
   return (
     <span id="nav-account" className="nav-account">
       <Link
         href="/account"
         className="nav-profile-link"
-        aria-label="Open my account"
+        aria-label={initial ? "Open my account" : "Sign in or open my account"}
+        aria-current={onAccount ? "page" : undefined}
       >
         <span
           className="nav-profile-avatar"
-          style={
-            avatarUrl ? { backgroundImage: `url('${avatarUrl}')` } : undefined
-          }
+          aria-hidden="true"
         >
-          {!avatarUrl ? initial : null}
+          {avatarUrl ? (
+            <img src={avatarUrl} alt="" />
+          ) : initial ? (
+            initial
+          ) : (
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              focusable="false"
+            >
+              <circle cx="12" cy="8" r="4" />
+              <path d="M4 21a8 8 0 0 1 16 0" />
+            </svg>
+          )}
         </span>
       </Link>
       <Link
@@ -64,37 +82,6 @@ export default function NavAccountClient({
         {unreadCount > 0 && (
           <span className="nav-badge-dot" aria-hidden="true" />
         )}
-      </Link>
-      <Link
-        href="/profile-settings"
-        className="nav-icon-link nav-settings-link"
-        aria-label="Open profile settings"
-        aria-current={onSettings ? "page" : undefined}
-      >
-        <span className="nav-settings-icon" aria-hidden="true">
-          {/* Simple gear — reads cleanly at 22px */}
-          <svg
-            viewBox="0 0 24 24"
-            width="22"
-            height="22"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            focusable="false"
-          >
-            <circle cx="12" cy="12" r="3" />
-            <path d="M12 1v2" />
-            <path d="M12 21v2" />
-            <path d="M4.22 4.22l1.42 1.42" />
-            <path d="M18.36 18.36l1.42 1.42" />
-            <path d="M1 12h2" />
-            <path d="M21 12h2" />
-            <path d="M4.22 19.78l1.42-1.42" />
-            <path d="M18.36 5.64l1.42-1.42" />
-          </svg>
-        </span>
       </Link>
     </span>
   );

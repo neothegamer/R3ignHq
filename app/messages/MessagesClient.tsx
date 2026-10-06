@@ -130,10 +130,117 @@ function MessageTicks({ msg }: { msg: MsgRow }) {
   );
 }
 
-function publicUrl(path: string) {
-  const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  if (!base) return "";
-  return `${base}/storage/v1/object/public/${BUCKET}/${path}`;
+function attachmentObjectPath(value: string): string | null {
+  const attachment = value.trim();
+  if (!attachment) return null;
+
+  let path = attachment;
+  if (/^https?:\/\//i.test(attachment)) {
+    try {
+      const segments = new URL(attachment).pathname
+        .split("/")
+        .filter(Boolean)
+        .map((segment) => decodeURIComponent(segment));
+      const bucketIndex = segments.indexOf(BUCKET);
+      if (bucketIndex < 0) return null;
+      path = segments.slice(bucketIndex + 1).join("/");
+    } catch {
+      return null;
+    }
+  } else {
+    path = attachment.replace(/^\/+/, "");
+    if (path.startsWith(`${BUCKET}/`)) {
+      path = path.slice(BUCKET.length + 1);
+    }
+  }
+
+  const segments = path.split("/");
+  if (
+    !path ||
+    segments.some(
+      (segment) => !segment || segment === "." || segment === ".."
+    )
+  ) {
+    return null;
+  }
+  return path;
+}
+
+function MessageAttachment({ path }: { path: string }) {
+  const storagePath = attachmentObjectPath(path);
+  const [signedUrl, setSignedUrl] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadAttachment() {
+      setSignedUrl(null);
+      setLoadError(null);
+      setLoading(true);
+
+      if (!storagePath) {
+        setLoadError("The attachment path is invalid.");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await createClient()
+          .storage.from(BUCKET)
+          .createSignedUrl(storagePath, 3600);
+        if (error) throw error;
+        if (!data.signedUrl) {
+          throw new Error("The storage service did not return an attachment URL.");
+        }
+        if (!cancelled) setSignedUrl(data.signedUrl);
+      } catch (error: unknown) {
+        if (!cancelled) {
+          setLoadError(
+            error instanceof Error
+              ? error.message
+              : "Could not load this attachment."
+          );
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    void loadAttachment();
+    return () => {
+      cancelled = true;
+    };
+  }, [storagePath]);
+
+  if (loading) {
+    return <span className="msg-attach-status">Loading attachment…</span>;
+  }
+  if (loadError || !signedUrl) {
+    return (
+      <span className="msg-attach-status" role="status">
+        Attachment unavailable{loadError ? `: ${loadError}` : "."}
+      </span>
+    );
+  }
+
+  return (
+    <a
+      href={signedUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="msg-attach-link"
+      onClick={(event) => event.stopPropagation()}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={signedUrl}
+        alt="Attachment"
+        className="msg-attach-img"
+      />
+    </a>
+  );
 }
 
 const LONG_PRESS_MS = 450;
@@ -1183,20 +1290,9 @@ export default function MessagesClient() {
                                   (m.attachment_type || "").startsWith(
                                     "image/"
                                   ) && (
-                                    <a
-                                      href={publicUrl(m.attachment_path)}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="msg-attach-link"
-                                      onClick={(e) => e.stopPropagation()}
-                                    >
-                                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                                      <img
-                                        src={publicUrl(m.attachment_path)}
-                                        alt="Attachment"
-                                        className="msg-attach-img"
-                                      />
-                                    </a>
+                                    <MessageAttachment
+                                      path={m.attachment_path}
+                                    />
                                   )}
                                 {m.body?.trim() ? (
                                   <span className="msg-bubble-text">

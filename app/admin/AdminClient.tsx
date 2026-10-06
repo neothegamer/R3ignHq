@@ -547,7 +547,6 @@ export default function AdminClient() {
       return;
     }
 
-    const table = tab;
     const action = isEdit ? "Update" : "Create";
     const label =
       tab === "news" ? "news post" : tab === "awards" ? "award" : "highlight";
@@ -572,7 +571,7 @@ export default function AdminClient() {
             )
           );
           const { data, error } = await supabase
-            .from(table)
+            .from("news_posts")
             .update(payload)
             .eq("id", id)
             .select("*")
@@ -592,7 +591,7 @@ export default function AdminClient() {
           };
           setNews((items) => [temp, ...items]);
           const { data, error } = await supabase
-            .from(table)
+            .from("news_posts")
             .insert(payload)
             .select("*")
             .single();
@@ -619,7 +618,7 @@ export default function AdminClient() {
             )
           );
           const { data, error } = await supabase
-            .from(table)
+            .from("award_winners")
             .update(payload)
             .eq("id", id)
             .select("*")
@@ -641,7 +640,7 @@ export default function AdminClient() {
           };
           setAwards((items) => [temp, ...items]);
           const { data, error } = await supabase
-            .from(table)
+            .from("award_winners")
             .insert(payload)
             .select("*")
             .single();
@@ -673,7 +672,7 @@ export default function AdminClient() {
             )
           );
           const { data, error } = await supabase
-            .from(table)
+            .from("match_highlights")
             .update(payload)
             .eq("id", id)
             .select("*")
@@ -695,7 +694,7 @@ export default function AdminClient() {
           };
           setHighlights((items) => [temp, ...items]);
           const { data, error } = await supabase
-            .from(table)
+            .from("match_highlights")
             .insert(payload)
             .select("*")
             .single();

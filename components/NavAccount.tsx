@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import NavAccountClient from "./NavAccountClient";
 
@@ -10,13 +9,7 @@ export default async function NavAccount() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return (
-      <span id="nav-account" className="nav-account">
-        <Link href="/signin" className="btn">
-          Sign In
-        </Link>
-      </span>
-    );
+    return <NavAccountClient initial={null} avatarUrl={null} unreadCount={0} />;
   }
 
   const displayName =
@@ -26,15 +19,12 @@ export default async function NavAccount() {
     "Account";
   const initial = displayName.charAt(0).toUpperCase();
 
-  let avatarUrl: string | null =
-    (user.user_metadata?.avatar_url as string | undefined) || null;
-
   const { data: profile } = await supabase
     .from("profiles")
     .select("avatar_url")
     .eq("id", user.id)
     .maybeSingle();
-  if (profile?.avatar_url) avatarUrl = profile.avatar_url;
+  const avatarUrl = profile?.avatar_url ?? null;
 
   let unreadCount = 0;
   try {

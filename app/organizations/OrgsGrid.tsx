@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import SiteSearch from "@/components/SiteSearch";
 
 export type OrgRow = {
   id: string;
@@ -148,14 +149,18 @@ export default function OrgsGrid({
   live: boolean;
 }) {
   const [filter, setFilter] = useState("all");
+  const [query, setQuery] = useState("");
 
   const all: Org[] = useMemo(
     () => (live ? buildLiveOrgs(orgs, rankings) : SAMPLE),
     [orgs, rankings, live]
   );
 
-  const visible =
-    filter === "all" ? all : all.filter((o) => o.league === filter);
+  const visible = all.filter((org) => {
+    const matchesLeague = filter === "all" || org.league === filter;
+    const searchable = `${org.name} ${org.tag} ${org.league} ${org.rank}`.toLowerCase();
+    return matchesLeague && searchable.includes(query.trim().toLowerCase());
+  });
 
   const statusText = live
     ? `Showing ${all.length} organization${all.length === 1 ? "" : "s"} from Supabase.`
@@ -163,6 +168,11 @@ export default function OrgsGrid({
 
   return (
     <>
+      <SiteSearch
+        value={query}
+        onChange={setQuery}
+        placeholder="Search organizations…"
+      />
       <div className="filter-bar">
         <button
           className="filter-chip"
