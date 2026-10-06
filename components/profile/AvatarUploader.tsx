@@ -10,8 +10,12 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { useR3ignDialog } from "@/components/R3ignDialog";
 
-const MAX_FILE_SIZE = 2 * 1024 * 1024;
-const ALLOWED_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
+const MAX_FILE_SIZE = 2_097_152;
+const EXTENSION_BY_TYPE: Record<string, "png" | "jpg" | "webp"> = {
+  "image/png": "png",
+  "image/jpeg": "jpg",
+  "image/webp": "webp",
+};
 const BUCKET = "profile-avatars";
 
 type Props = {
@@ -35,7 +39,7 @@ export default function AvatarUploader({
   const [uploading, setUploading] = useState(false);
   const [removing, setRemoving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  const [success, setSuccess] = useState<string | null>(null);
 
   useEffect(
     () => () => {
@@ -46,7 +50,7 @@ export default function AvatarUploader({
 
   useEffect(() => {
     if (!success) return;
-    const timeout = window.setTimeout(() => setSuccess(false), 2500);
+    const timeout = window.setTimeout(() => setSuccess(null), 2500);
     return () => window.clearTimeout(timeout);
   }, [success]);
 
@@ -71,13 +75,15 @@ export default function AvatarUploader({
     if (!file) return;
 
     setError(null);
-    setSuccess(false);
-    if (!ALLOWED_TYPES.has(file.type)) {
-      setError("Choose a PNG, JPEG, or WebP image.");
+    setSuccess(null);
+    if (!Object.hasOwn(EXTENSION_BY_TYPE, file.type)) {
+      setError("Unsupported image type. Choose a PNG, JPEG, or WebP file.");
       return;
     }
     if (file.size > MAX_FILE_SIZE) {
-      setError("Images must be 2 MB or smaller.");
+      setError(
+        "Image is too large. Choose a file no bigger than 2 MB (2,097,152 bytes)."
+      );
       return;
     }
 
@@ -91,31 +97,57 @@ export default function AvatarUploader({
     }
   }
 
-  async function removeOldAvatar(url: string, userId: string) {
+  async function deleteAvatarObject(path: string) {
+    const { data, error: removalError } = await supabase.storage
+      .from(BUCKET)
+      .remove([path]);
+    if (removalError) throw removalError;
+    if (!data?.length) {
+      throw new Error(`No profile avatar was deleted at storage path "${path}".`);
+    }
+  }
+
+  async function cleanupAvatarFolder(userId: string, exceptFileName?: string) {
+    if (!userId) return;
+
     try {
-      const publicBase = new URL(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!
-      );
-      const avatar = new URL(url);
-      if (avatar.origin !== publicBase.origin) return;
-
-      const marker = `/storage/v1/object/public/${BUCKET}/`;
-      const markerIndex = avatar.pathname.indexOf(marker);
-      if (markerIndex < 0) return;
-
-      const path = decodeURIComponent(
-        avatar.pathname.slice(markerIndex + marker.length)
-      );
-      if (!path.startsWith(`${userId}/`)) return;
-
-      const { error: removalError } = await supabase.storage
+      const { data, error: listError } = await supabase.storage
         .from(BUCKET)
-        .remove([path]);
-      if (removalError) {
-        console.warn("Could not remove the previous profile avatar:", removalError);
+        .list(userId, { limit: 100 });
+      if (listError) {
+        console.warn("Could not list profile avatar files for cleanup:", listError);
+        return;
       }
-    } catch (removalError: unknown) {
-      console.warn("Could not remove the previous profile avatar:", removalError);
+
+      const paths = (data ?? [])
+        .filter(
+          (file) =>
+            file.id &&
+            file.name &&
+            file.name !== exceptFileName &&
+            !file.name.includes("/") &&
+            file.name !== "." &&
+            file.name !== ".."
+        )
+        .map((file) => `${userId}/${file.name}`);
+      if (paths.length === 0) return;
+
+      const { data: removed, error: removeError } = await supabase.storage
+        .from(BUCKET)
+        .remove(paths);
+      if (removeError) {
+        console.warn("Could not clean up profile avatar files:", removeError);
+        return;
+      }
+      if (!removed?.length) {
+        console.warn("Profile avatar cleanup found files, but none were deleted.");
+      } else if (removed.length < paths.length) {
+        console.warn(
+          `Profile avatar cleanup deleted ${removed.length} of ${paths.length} files.`
+        );
+      }
+    } catch (cleanupError: unknown) {
+      console.warn("Could not clean up profile avatar files:", cleanupError);
     }
   }
 
@@ -124,26 +156,20 @@ export default function AvatarUploader({
 
     setUploading(true);
     setError(null);
+    let uploadedPath: string | null = null;
+    let profileUpdated = false;
     try {
       const {
         data: { user },
         error: authError,
       } = await supabase.auth.getUser();
       if (authError) throw authError;
-      if (!user || user.id !== profileId) {
+      if (!user || !user.id || user.id !== profileId) {
         throw new Error("Sign in as this profile owner to change the avatar.");
       }
 
-      const { data: currentProfile, error: profileError } = await supabase
-        .from("profiles")
-        .select("avatar_url")
-        .eq("id", user.id)
-        .single();
-      if (profileError) throw profileError;
-      const oldAvatarUrl = currentProfile.avatar_url;
-
-      const safeFilename = selectedFile.name.replace(/[^\w.-]+/g, "_");
-      const path = `${user.id}/${Date.now()}-${safeFilename}`;
+      const extension = EXTENSION_BY_TYPE[selectedFile.type];
+      const path = `${user.id}/${crypto.randomUUID()}.${extension}`;
       const { error: uploadError } = await supabase.storage
         .from(BUCKET)
         .upload(path, selectedFile, {
@@ -151,6 +177,7 @@ export default function AvatarUploader({
           upsert: false,
         });
       if (uploadError) throw uploadError;
+      uploadedPath = path;
 
       const {
         data: { publicUrl },
@@ -162,12 +189,23 @@ export default function AvatarUploader({
         .select("id")
         .single();
       if (updateError) throw updateError;
+      profileUpdated = true;
 
       onAvatarChange(publicUrl);
       await closePreview();
-      setSuccess(true);
-      if (oldAvatarUrl) await removeOldAvatar(oldAvatarUrl, user.id);
+      setSuccess("Profile photo updated.");
+      await cleanupAvatarFolder(user.id, path.split("/").pop());
     } catch (uploadError: unknown) {
+      if (uploadedPath && !profileUpdated) {
+        try {
+          await deleteAvatarObject(uploadedPath);
+        } catch (cleanupError: unknown) {
+          console.warn(
+            "Could not remove the newly uploaded profile avatar:",
+            cleanupError
+          );
+        }
+      }
       setError(
         uploadError instanceof Error
           ? uploadError.message
@@ -189,23 +227,16 @@ export default function AvatarUploader({
 
     setRemoving(true);
     setError(null);
-    setSuccess(false);
+    setSuccess(null);
     try {
       const {
         data: { user },
         error: authError,
       } = await supabase.auth.getUser();
       if (authError) throw authError;
-      if (!user || user.id !== profileId) {
+      if (!user || !user.id || user.id !== profileId) {
         throw new Error("Sign in as this profile owner to change the avatar.");
       }
-
-      const { data: currentProfile, error: profileError } = await supabase
-        .from("profiles")
-        .select("avatar_url")
-        .eq("id", user.id)
-        .single();
-      if (profileError) throw profileError;
 
       const { error: updateError } = await supabase
         .from("profiles")
@@ -216,10 +247,8 @@ export default function AvatarUploader({
       if (updateError) throw updateError;
 
       onAvatarChange(null);
-      setSuccess(true);
-      if (currentProfile.avatar_url) {
-        await removeOldAvatar(currentProfile.avatar_url, user.id);
-      }
+      await cleanupAvatarFolder(user.id);
+      setSuccess("Profile photo removed.");
     } catch (removeError: unknown) {
       setError(
         removeError instanceof Error
@@ -280,7 +309,7 @@ export default function AvatarUploader({
       </div>
       {success && (
         <p className="avatar-uploader-success" role="status">
-          Profile photo updated.
+          {success}
         </p>
       )}
       {error && !previewUrl && (
