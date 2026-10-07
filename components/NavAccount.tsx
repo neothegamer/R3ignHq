@@ -1,12 +1,9 @@
-import { createClient } from "@/lib/supabase/server";
+import { getServerAuth } from "@/lib/supabase/auth";
 import NavAccountClient from "./NavAccountClient";
 
 /** Server component — session read on the server, no client redirect flash. */
 export default async function NavAccount() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, user } = await getServerAuth();
 
   if (!user) {
     return <NavAccountClient initial={null} avatarUrl={null} unreadCount={0} />;
@@ -19,24 +16,24 @@ export default async function NavAccount() {
     "Account";
   const initial = displayName.charAt(0).toUpperCase();
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("avatar_url")
-    .eq("id", user.id)
-    .maybeSingle();
-  const avatarUrl = profile?.avatar_url ?? null;
-
-  let unreadCount = 0;
-  try {
-    const { count } = await supabase
+  const [profileResult, unreadResult] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("avatar_url")
+      .eq("id", user.id)
+      .maybeSingle(),
+    supabase
       .from("messages")
       .select("id", { count: "exact", head: true })
       .eq("recipient_id", user.id)
-      .is("read_at", null);
-    unreadCount = count ?? 0;
-  } catch {
-    // best-effort
-  }
+      .is("read_at", null),
+  ]);
+
+  if (profileResult.error) throw profileResult.error;
+  if (unreadResult.error) throw unreadResult.error;
+
+  const avatarUrl = profileResult.data?.avatar_url ?? null;
+  const unreadCount = unreadResult.count ?? 0;
 
   return (
     <NavAccountClient

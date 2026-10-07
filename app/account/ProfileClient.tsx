@@ -5,7 +5,6 @@ import IdentityHeader from "@/components/profile/IdentityHeader";
 import GameAccountsSection from "@/components/profile/GameAccountsSection";
 import ConnectionsSection from "@/components/profile/ConnectionsSection";
 import MyTeamsSection from "@/components/profile/MyTeamsSection";
-import MarketPresenceSection from "@/components/profile/MarketPresenceSection";
 import SecuritySection from "@/components/profile/SecuritySection";
 import type {
   AccountConnection,
@@ -15,7 +14,6 @@ import type {
   GameAccount,
   GameProfile,
   MutedUser,
-  PlayerListing,
   TeamMembership,
 } from "@/components/profile/account-types";
 
@@ -26,7 +24,6 @@ type Props = {
   gameProfiles: GameProfile[];
   connections: AccountConnection[];
   memberships: TeamMembership[];
-  listings: PlayerListing[];
   blockedUsers: BlockedUser[];
   mutedUsers: MutedUser[];
   loadErrors: AccountLoadErrors;
@@ -39,7 +36,6 @@ export default function ProfileClient({
   gameProfiles,
   connections,
   memberships,
-  listings,
   blockedUsers,
   mutedUsers,
   loadErrors,
@@ -87,12 +83,6 @@ export default function ProfileClient({
             profileId={profile.id}
             memberships={memberships}
             loadError={loadErrors.teams}
-          />
-          <MarketPresenceSection
-            mode="account"
-            profileId={profile.id}
-            listings={listings}
-            loadError={loadErrors.market}
           />
           <SecuritySection
             profileId={profile.id}

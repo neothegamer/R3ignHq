@@ -1,11 +1,16 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import NavAccount from "@/components/NavAccount";
 import Providers from "@/components/Providers";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ??
+      (process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : "http://localhost:3000")
+  ),
   title: {
     default: "R3IGN HQ",
     template: "%s · R3IGN HQ",
@@ -45,7 +50,6 @@ export default function RootLayout({
           </a>
           <Header accountSlot={<NavAccount />} />
           {children}
-          <Footer />
         </Providers>
       </body>
     </html>

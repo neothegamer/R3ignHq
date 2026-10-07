@@ -99,7 +99,10 @@ export default function MyTeamsSection({
   }
 
   return (
-    <ProfileSection icon="♧" title="My teams">
+    <ProfileSection
+      icon={mode === "public" ? "♧" : undefined}
+      title="My teams"
+    >
       <SectionLoadError message={loadError} />
       {activeMemberships.length > 0 && (
         <div className="profile-team-list">

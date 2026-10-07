@@ -1,4 +1,6 @@
 
+import Footer from "@/components/Footer";
+
 export const metadata = {
   title: "About · R3IGN HQ",
   description:
@@ -130,6 +132,7 @@ export default function AboutPage() {
           </div>
         </div>
       </main>
+      <Footer />
     </>
   );
 }

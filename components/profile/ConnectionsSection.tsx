@@ -64,7 +64,7 @@ export default function ConnectionsSection({
   }
 
   return (
-    <ProfileSection icon="◎" title="Connections">
+    <ProfileSection title="Connections">
       <SectionLoadError message={loadError} />
       <div className="profile-connection-row">
         <div>

@@ -3583,6 +3583,525 @@ body:has(.msg-layout) .site-footer {
   border-color: var(--signal-dim);
   color: #ed8b7f;
 }
+
+.profile-account-page {
+  min-height: 60vh;
+  padding-bottom: 3rem;
+}
+.profile-account-content {
+  padding-block: 1.5rem 3rem;
+}
+.profile-account-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+.profile-section {
+  min-width: 0;
+  padding: clamp(1rem, 2.5vw, 1.5rem);
+  border: 1px solid var(--line);
+  background: var(--panel);
+}
+.profile-section-wide {
+  grid-column: 1 / -1;
+}
+.profile-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.15rem;
+}
+.profile-section-heading h2 {
+  margin: 0;
+  font-size: clamp(1.15rem, 2vw, 1.45rem);
+}
+.profile-section-icon {
+  margin-right: 0.5rem;
+}
+.profile-kicker {
+  color: var(--amber);
+  font: 0.68rem var(--f-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.profile-muted,
+.profile-team-meta {
+  color: var(--paper-dim);
+  font-size: 0.82rem;
+}
+.profile-inline-error,
+.profile-inline-success,
+.profile-inline-note {
+  margin-top: 0.7rem;
+  overflow-wrap: anywhere;
+  font-size: 0.8rem;
+}
+.profile-inline-error {
+  color: #ed8b7f;
+}
+.profile-inline-success {
+  color: #9bd4ad;
+}
+.profile-inline-note {
+  color: var(--paper-dim);
+}
+.profile-empty-state {
+  padding: 0.9rem;
+  border: 1px dashed var(--line);
+  color: var(--paper-dim);
+  font-size: 0.84rem;
+}
+.profile-account-grid input:not([type="checkbox"]):not(.visually-hidden),
+.profile-account-grid select,
+.profile-account-grid textarea,
+.profile-modal input:not([type="checkbox"]):not(.visually-hidden) {
+  width: 100%;
+  min-width: 0;
+  min-height: 2.7rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  background: var(--ink);
+  color: var(--paper);
+  font: 0.84rem var(--f-body);
+}
+.profile-account-grid textarea {
+  min-height: 6rem;
+  resize: vertical;
+}
+.profile-account-grid input:not(.visually-hidden):focus,
+.profile-account-grid select:focus,
+.profile-account-grid textarea:focus,
+.profile-modal input:focus {
+  border-color: var(--amber);
+  outline: 2px solid var(--amber-dim);
+  outline-offset: 1px;
+}
+.profile-account-grid input:disabled,
+.profile-account-grid select:disabled,
+.profile-account-grid textarea:disabled {
+  opacity: 0.65;
+}
+.profile-identity-layout {
+  display: grid;
+  grid-template-columns: minmax(7rem, 9rem) minmax(0, 1fr);
+  align-items: start;
+  gap: clamp(1rem, 3vw, 2rem);
+}
+.profile-identity-avatar {
+  display: grid;
+  justify-items: center;
+  gap: 0.7rem;
+}
+.profile-online-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--paper-dim);
+  font: 0.65rem var(--f-mono);
+  text-transform: uppercase;
+}
+.profile-online-status > span {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--steel);
+}
+.profile-online-status.is-online > span {
+  background: #58b368;
+  box-shadow: 0 0 0.5rem rgba(88, 179, 104, 0.6);
+}
+.profile-identity-main {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+.profile-identity-title,
+.profile-public-actions,
+.profile-id-badges,
+.profile-inline-control,
+.profile-bio-footer,
+.profile-identity-meta,
+.profile-selected-games,
+.profile-row-actions,
+.profile-modal-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+.profile-identity-title {
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.profile-identity-title h2 {
+  overflow-wrap: anywhere;
+}
+.profile-identity-title p,
+.profile-identity-meta {
+  color: var(--paper-dim);
+  font-size: 0.78rem;
+}
+.profile-id-badge {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--paper-dim);
+  font: 0.65rem var(--f-mono);
+  cursor: pointer;
+}
+.profile-id-badge:hover {
+  border-color: var(--amber);
+  color: var(--amber);
+}
+.profile-copy-feedback {
+  color: #9bd4ad;
+  font-size: 0.75rem;
+}
+.profile-identity-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+.profile-edit-field {
+  display: grid;
+  align-content: start;
+  gap: 0.45rem;
+  min-width: 0;
+}
+.profile-edit-field > label,
+.profile-modal label {
+  color: var(--paper-dim);
+  font-size: 0.75rem;
+}
+.profile-edit-field.profile-bio-field {
+  grid-column: 1 / -1;
+}
+.profile-inline-control {
+  flex-wrap: nowrap;
+}
+.profile-inline-control > input,
+.profile-inline-control > select {
+  flex: 1 1 auto;
+}
+.profile-country-flag {
+  flex: 0 0 auto;
+  margin-left: -2.3rem;
+  pointer-events: none;
+}
+.profile-bio-footer {
+  justify-content: space-between;
+  color: var(--paper-dim);
+  font: 0.68rem var(--f-mono);
+}
+.profile-identity-meta {
+  gap: 0.45rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--line);
+}
+.profile-selected-games {
+  min-height: 2rem;
+}
+.profile-selected-games > strong {
+  margin-right: 0.25rem;
+  font-size: 0.75rem;
+}
+.profile-game-chip,
+.profile-status-badge,
+.profile-role-badge {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  padding: 0.28rem 0.5rem;
+  border: 1px solid var(--line);
+  color: var(--paper-dim);
+  font: 0.64rem var(--f-mono);
+  text-transform: uppercase;
+}
+.profile-game-chip {
+  border-color: var(--amber-dim);
+  color: var(--amber);
+}
+.profile-status-badge.is-verified {
+  color: #9bd4ad;
+}
+.profile-status-badge.is-pending {
+  color: var(--amber);
+}
+.profile-status-badge.is-rejected {
+  color: #ed8b7f;
+}
+.profile-game-account-list,
+.profile-team-list,
+.profile-invitation-list,
+.profile-stack,
+.profile-row-list {
+  display: grid;
+  gap: 0.75rem;
+}
+.profile-game-account,
+.profile-team-row,
+.profile-connection-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  min-width: 0;
+  padding: 0.9rem;
+  border: 1px solid var(--line);
+  background: var(--ink);
+}
+.profile-game-account-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 1 1 100%;
+  gap: 0.75rem;
+  min-width: 0;
+}
+.profile-game-account h3 {
+  margin-top: 0.25rem;
+  font-size: 1rem;
+  overflow-wrap: anywhere;
+}
+.profile-game-account p,
+.profile-team-clan {
+  margin-top: 0.4rem;
+  color: var(--paper-dim);
+  font-size: 0.8rem;
+}
+.profile-team-clan span {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.72rem;
+}
+.profile-game-verification-code {
+  flex: 1 1 100%;
+  color: var(--paper-dim);
+  font-size: 0.78rem;
+}
+.profile-game-verification-code code {
+  color: var(--amber);
+}
+.profile-team-name {
+  display: block;
+  font-weight: 700;
+}
+.profile-team-name:hover {
+  color: var(--amber);
+}
+.profile-team-meta {
+  display: block;
+  margin-top: 0.3rem;
+}
+.profile-invitation-list {
+  margin-top: 1rem;
+}
+.profile-invitation-list h3,
+.profile-subsection h3 {
+  font-size: 0.9rem;
+  text-transform: uppercase;
+}
+.profile-connection-row > div {
+  display: grid;
+  gap: 0.25rem;
+}
+.profile-stack {
+  gap: 1.25rem;
+}
+.profile-inline-form {
+  display: grid;
+  gap: 0.5rem;
+}
+.profile-inline-form-row {
+  display: flex;
+  align-items: stretch;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.profile-inline-form-row > input {
+  flex: 1 1 12rem;
+}
+.profile-inline-form-stack > input {
+  flex: 1 1 10rem;
+}
+.profile-inline-form .field-label {
+  font-size: 0.78rem;
+}
+.profile-inline-form .field-hint {
+  color: var(--paper-dim);
+  font-size: 0.75rem;
+}
+.profile-subsection {
+  display: grid;
+  gap: 0.6rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+}
+.profile-list-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.65rem 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.82rem;
+}
+.profile-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow-y: auto;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.78);
+}
+.profile-modal {
+  width: min(100%, 560px);
+  max-height: min(90vh, 760px);
+  overflow-y: auto;
+  padding: clamp(1.1rem, 4vw, 1.75rem);
+  border: 1px solid var(--amber);
+  background: var(--panel);
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.55);
+}
+.profile-modal-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.8rem;
+}
+.profile-modal-heading h2 {
+  margin-top: 0.3rem;
+  font-size: 1.3rem;
+}
+.profile-modal-close {
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--paper);
+  font-size: 1.25rem;
+  cursor: pointer;
+}
+.profile-game-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+  gap: 0.6rem;
+  margin-block: 1rem;
+}
+.profile-game-picker-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  padding: 0.75rem;
+  border: 1px solid var(--line);
+  background: var(--ink);
+  cursor: pointer;
+}
+.profile-game-picker-item input {
+  accent-color: var(--amber);
+}
+.profile-game-picker-item span {
+  display: grid;
+  gap: 0.25rem;
+}
+.profile-game-form-fields {
+  display: grid;
+  gap: 0.75rem;
+  margin: 1rem 0;
+  padding: 0.9rem;
+  border: 1px solid var(--line);
+}
+.profile-game-form-fields legend {
+  padding-inline: 0.35rem;
+  color: var(--amber);
+  font: 0.7rem var(--f-mono);
+}
+.profile-game-form-fields label {
+  display: grid;
+  gap: 0.4rem;
+}
+.profile-modal-actions {
+  justify-content: flex-end;
+  margin-top: 1rem;
+}
+.profile-onboarding-nudge {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding: 1rem 3rem 1rem 1rem;
+  border: 1px solid var(--amber);
+  background: var(--panel);
+}
+.profile-onboarding-nudge p {
+  margin-top: 0.25rem;
+  color: var(--paper-dim);
+  font-size: 0.82rem;
+}
+.profile-nudge-dismiss {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  border: 0;
+  background: transparent;
+  color: var(--paper-dim);
+  font-size: 1.3rem;
+  cursor: pointer;
+}
+@media (max-width: 760px) {
+  .profile-account-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .profile-section-wide {
+    grid-column: auto;
+  }
+}
+@media (max-width: 520px) {
+  .profile-identity-layout,
+  .profile-identity-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .profile-identity-avatar {
+    justify-items: start;
+  }
+  .profile-edit-field.profile-bio-field {
+    grid-column: auto;
+  }
+  .profile-section-heading,
+  .profile-onboarding-nudge {
+    align-items: flex-start;
+  }
+  .profile-section-heading {
+    flex-direction: column;
+  }
+  .profile-section-heading > .btn {
+    width: 100%;
+    justify-content: center;
+  }
+  .profile-inline-form-row > .btn,
+  .profile-inline-control > .btn {
+    flex: 1 1 auto;
+  }
+  .profile-public-actions {
+    width: 100%;
+  }
+  .profile-public-actions > .btn {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+  .profile-onboarding-nudge {
+    flex-direction: column;
+  }
+}
 .admin-editor,
 .admin-lookup {
   display: grid;

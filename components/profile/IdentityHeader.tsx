@@ -25,7 +25,7 @@ type Props = AccountProps | PublicProps;
 
 type CountryOption = { code: string; name: string };
 
-const COUNTRY_OPTIONS: CountryOption[] = (() => {
+function getCountryOptions(): CountryOption[] {
   const names = new Intl.DisplayNames(["en"], { type: "region" });
   const countries: CountryOption[] = [];
   for (let first = 65; first <= 90; first += 1) {
@@ -36,7 +36,7 @@ const COUNTRY_OPTIONS: CountryOption[] = (() => {
     }
   }
   return countries.sort((a, b) => a.name.localeCompare(b.name));
-})();
+}
 
 const GAME_LABELS: Record<string, string> = {
   rcml: "RCML",
@@ -51,15 +51,16 @@ function countryFlag(code: string) {
   );
 }
 
-function countryCodeFor(value: string | null) {
+function countryCodeFor(value: string | null, countryOptions: CountryOption[]) {
   if (!value) return "";
   const normalized = value.trim().toLowerCase();
   return (
-    COUNTRY_OPTIONS.find(
+    countryOptions.find(
       ({ code, name }) =>
         code.toLowerCase() === normalized ||
         name.toLowerCase() === normalized
-    )?.code ?? ""
+    )?.code ??
+    (/^[a-z]{2}$/i.test(value) ? value.toUpperCase() : "")
   );
 }
 
@@ -91,6 +92,7 @@ export default function IdentityHeader(props: Props) {
   const [nameMessage, setNameMessage] = useState("");
   const [bioMessage, setBioMessage] = useState("");
   const [countryMessage, setCountryMessage] = useState("");
+  const [countryOptions, setCountryOptions] = useState<CountryOption[]>([]);
   const [copied, setCopied] = useState("");
   const online = isOnline(profile.id);
   const nameValue = profile.display_name ?? "";
@@ -102,6 +104,10 @@ export default function IdentityHeader(props: Props) {
   useEffect(() => {
     setBio(profile.bio ?? "");
   }, [profile.bio]);
+
+  useEffect(() => {
+    setCountryOptions(getCountryOptions());
+  }, []);
 
   async function copyValue(value: string, label: string) {
     try {
@@ -220,12 +226,14 @@ export default function IdentityHeader(props: Props) {
     }
   }
 
-  const countryCode = countryCodeFor(profile.country);
-  const countryOptions = profile.country &&
-    !COUNTRY_OPTIONS.some(({ name }) => name === profile.country) &&
-    !COUNTRY_OPTIONS.some(({ code }) => code === profile.country)
-    ? [{ code: "", name: profile.country }, ...COUNTRY_OPTIONS]
-    : COUNTRY_OPTIONS;
+  const countryCode = countryCodeFor(profile.country, countryOptions);
+  const availableCountryOptions =
+    profile.country &&
+    !countryOptions.some(
+      ({ name, code }) => name === profile.country || code === profile.country
+    )
+      ? [{ code: "", name: profile.country }, ...countryOptions]
+      : countryOptions;
 
   if (isPublic) {
     return (
@@ -251,7 +259,8 @@ export default function IdentityHeader(props: Props) {
             )}
             {profile.country && (
               <span className="public-profile-badge">
-                {countryFlag(countryCodeFor(profile.country))} {profile.country}
+                {countryFlag(countryCodeFor(profile.country, countryOptions))}{" "}
+                {profile.country}
               </span>
             )}
           </div>
@@ -280,7 +289,7 @@ export default function IdentityHeader(props: Props) {
 
   return (
     <ProfileSection
-      icon="◈"
+      icon={isPublic ? "◈" : undefined}
       title="Player identity"
       className="profile-section-wide profile-identity-section"
     >
@@ -398,10 +407,10 @@ export default function IdentityHeader(props: Props) {
                 <select
                   id="account-country"
                   value={
-                    countryOptions.find(
+                    availableCountryOptions.find(
                       ({ name }) => name === profile.country
                     )?.name ??
-                    countryOptions.find(
+                    availableCountryOptions.find(
                       ({ code }) => code === profile.country
                     )?.name ??
                     ""
@@ -410,7 +419,7 @@ export default function IdentityHeader(props: Props) {
                   onChange={(event) => saveCountry(event.currentTarget.value)}
                 >
                   <option value="">Select country</option>
-                  {countryOptions.map(({ code, name: countryName }) => (
+                  {availableCountryOptions.map(({ code, name: countryName }) => (
                     <option key={`${code}-${countryName}`} value={countryName}>
                       {countryFlag(code)} {countryName}
                     </option>

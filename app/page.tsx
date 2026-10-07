@@ -1,8 +1,10 @@
 import Link from "next/link";
+import Footer from "@/components/Footer";
 
 export default function HomePage() {
   return (
-    <main id="main-content">
+    <>
+      <main id="main-content">
       {/* HERO */}
       <section className="hero">
         <div className="wrap">
@@ -656,6 +658,8 @@ export default function HomePage() {
           </div>
         </div>
       </div>
-    </main>
+      </main>
+      <Footer />
+    </>
   );
 }

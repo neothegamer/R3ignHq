@@ -1,3 +1,5 @@
+import Footer from "@/components/Footer";
+
 export const metadata = {
   title: "Support · R3IGN HQ",
   description:
@@ -6,7 +8,8 @@ export const metadata = {
 
 export default function SupportPage() {
   return (
-    <main id="main-content">
+    <>
+      <main id="main-content">
       <div className="page-header">
         <div className="wrap">
           <span className="breadcrumb">
@@ -343,6 +346,8 @@ export default function SupportPage() {
           </div>
         </div>
       </section>
-    </main>
+      </main>
+      <Footer />
+    </>
   );
 }

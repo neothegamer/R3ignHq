@@ -201,7 +201,7 @@ export default function GameAccountsSection({
 
   return (
     <ProfileSection
-      icon="⌖"
+      icon={mode === "public" ? "⌖" : undefined}
       title="Game accounts"
       action={mode === "account" ? (
         <button

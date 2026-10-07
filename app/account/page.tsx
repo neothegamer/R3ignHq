@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import ProfileClient from "./ProfileClient";
-import { createClient } from "@/lib/supabase/server";
+import { getServerAuth } from "@/lib/supabase/auth";
 import type {
   AccountLoadErrors,
   AccountProfile,
@@ -9,7 +9,6 @@ import type {
   GameAccount,
   GameProfile,
   MutedUser,
-  PlayerListing,
   TeamMembership,
   AccountConnection,
 } from "@/components/profile/account-types";
@@ -20,11 +19,7 @@ export const metadata: Metadata = {
 };
 
 export default async function AccountPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const { supabase, user } = await getServerAuth();
   if (!user) redirect("/signin");
 
   const [
@@ -33,7 +28,6 @@ export default async function AccountPage() {
     gameProfilesResult,
     connectionsResult,
     membershipsResult,
-    listingsResult,
     blocksResult,
     mutesResult,
   ] = await Promise.all([
@@ -68,11 +62,6 @@ export default async function AccountPage() {
       .eq("profile_id", user.id)
       .order("joined_at", { ascending: false }),
     supabase
-      .from("player_listings")
-      .select("*")
-      .eq("profile_id", user.id)
-      .order("created_at", { ascending: false }),
-    supabase
       .from("user_blocks")
       .select(
         "blocked_id,blocked_profile:profiles!user_blocks_blocked_id_fkey(display_name)"
@@ -104,7 +93,6 @@ export default async function AccountPage() {
     loadErrors.connections = connectionsResult.error.message;
   }
   if (membershipsResult.error) loadErrors.teams = membershipsResult.error.message;
-  if (listingsResult.error) loadErrors.market = listingsResult.error.message;
   if (blocksResult.error || mutesResult.error) {
     loadErrors.privacy = [
       blocksResult.error?.message,
@@ -143,7 +131,6 @@ export default async function AccountPage() {
       gameProfiles={(gameProfilesResult.data ?? []) as GameProfile[]}
       connections={(connectionsResult.data ?? []) as AccountConnection[]}
       memberships={memberships}
-      listings={(listingsResult.data ?? []) as PlayerListing[]}
       blockedUsers={blockedUsers}
       mutedUsers={mutedUsers}
       loadErrors={loadErrors}

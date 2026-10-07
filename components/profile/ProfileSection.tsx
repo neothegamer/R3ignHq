@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 type Props = {
-  icon: string;
+  icon?: string;
   title: string;
   action?: ReactNode;
   className?: string;
@@ -19,9 +19,11 @@ export default function ProfileSection({
     <section className={`profile-section ${className}`.trim()}>
       <header className="profile-section-heading">
         <h2>
-          <span className="profile-section-icon" aria-hidden="true">
-            {icon}
-          </span>
+          {icon && (
+            <span className="profile-section-icon" aria-hidden="true">
+              {icon}
+            </span>
+          )}
           {title}
         </h2>
         {action}

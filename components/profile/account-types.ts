@@ -54,7 +54,10 @@ export type TeamMembership = {
   inviterName: string | null;
 };
 
-export type PlayerListing = Tables["player_listings"]["Row"];
+export type PlayerListing = Pick<
+  Tables["player_listings"]["Row"],
+  "id" | "ign" | "role" | "league" | "status"
+>;
 
 export type PublicPlayerListing = Pick<
   PlayerListing,
@@ -78,7 +81,7 @@ export type MutedUser = {
 
 export type AccountLoadErrors = Partial<
   Record<
-    "profile" | "games" | "connections" | "teams" | "market" | "privacy",
+    "profile" | "games" | "connections" | "teams" | "privacy",
     string
   >
 >;

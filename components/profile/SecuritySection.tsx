@@ -183,7 +183,7 @@ export default function SecuritySection({
   }
 
   return (
-    <ProfileSection icon="⚑" title="Security & privacy">
+    <ProfileSection title="Security & privacy">
       <SectionLoadError message={loadError} />
 
       <div className="profile-stack">
