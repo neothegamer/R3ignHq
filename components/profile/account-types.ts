@@ -39,11 +39,6 @@ export type GameProfile = Pick<
   "game" | "ign" | "player_uid" | "team_clan" | "role"
 >;
 
-export type AccountConnection = Pick<
-  Tables["connections"]["Row"],
-  "id" | "provider" | "username" | "connected_at"
->;
-
 export type TeamMembership = {
   id: string;
   organizationId: string;
@@ -81,7 +76,7 @@ export type MutedUser = {
 
 export type AccountLoadErrors = Partial<
   Record<
-    "profile" | "games" | "connections" | "teams" | "privacy",
+    "profile" | "games" | "teams" | "privacy",
     string
   >
 >;

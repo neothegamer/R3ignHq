@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import type { UserIdentity } from "@supabase/supabase-js";
 import ProfileClient from "./ProfileClient";
 import { getServerAuth } from "@/lib/supabase/auth";
 import type {
@@ -10,7 +11,6 @@ import type {
   GameProfile,
   MutedUser,
   TeamMembership,
-  AccountConnection,
 } from "@/components/profile/account-types";
 
 export const metadata: Metadata = {
@@ -26,7 +26,6 @@ export default async function AccountPage() {
     profileResult,
     gameAccountsResult,
     gameProfilesResult,
-    connectionsResult,
     membershipsResult,
     blocksResult,
     mutesResult,
@@ -49,11 +48,6 @@ export default async function AccountPage() {
       .from("game_profiles")
       .select("game,ign,player_uid,team_clan,role")
       .eq("profile_id", user.id),
-    supabase
-      .from("connections")
-      .select("id,provider,username,connected_at")
-      .eq("profile_id", user.id)
-      .order("connected_at", { ascending: false }),
     supabase
       .from("organization_members")
       .select(
@@ -89,9 +83,6 @@ export default async function AccountPage() {
       .filter(Boolean)
       .join(" ");
   }
-  if (connectionsResult.error) {
-    loadErrors.connections = connectionsResult.error.message;
-  }
   if (membershipsResult.error) loadErrors.teams = membershipsResult.error.message;
   if (blocksResult.error || mutesResult.error) {
     loadErrors.privacy = [
@@ -123,17 +114,34 @@ export default async function AccountPage() {
     displayName: row.muted_profile?.display_name ?? null,
   }));
 
+  const discordIdentity = user.identities?.find(
+    (identity) => identity.provider.toLowerCase() === "discord"
+  );
+
   return (
     <ProfileClient
       profile={profileResult.data as AccountProfile}
       email={user.email ?? ""}
       gameAccounts={(gameAccountsResult.data ?? []) as GameAccount[]}
       gameProfiles={(gameProfilesResult.data ?? []) as GameProfile[]}
-      connections={(connectionsResult.data ?? []) as AccountConnection[]}
+      discordIdentity={
+        discordIdentity
+          ? { username: getDiscordUsername(discordIdentity) }
+          : null
+      }
+      identityCount={user.identities?.length ?? 0}
       memberships={memberships}
       blockedUsers={blockedUsers}
       mutedUsers={mutedUsers}
       loadErrors={loadErrors}
     />
   );
+}
+
+function getDiscordUsername(identity: UserIdentity): string | null {
+  for (const key of ["username", "global_name", "full_name", "name"]) {
+    const value = identity.identity_data?.[key];
+    if (typeof value === "string" && value.trim()) return value;
+  }
+  return null;
 }

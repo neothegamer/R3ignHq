@@ -1,93 +1,149 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useR3ignDialog } from "@/components/R3ignDialog";
 import { createClient } from "@/lib/supabase/client";
-import ProfileSection, { SectionLoadError } from "./ProfileSection";
-import type { AccountConnection } from "./account-types";
+import ProfileSection from "./ProfileSection";
 
 type Props = {
-  profileId: string;
-  connections: AccountConnection[];
-  loadError?: string;
+  discordIdentity: { username: string | null } | null;
+  identityCount: number;
 };
 
 export default function ConnectionsSection({
-  profileId,
-  connections: initialConnections,
-  loadError,
+  discordIdentity: initialDiscordIdentity,
+  identityCount: initialIdentityCount,
 }: Props) {
   const supabase = createClient();
+  const router = useRouter();
   const { confirm } = useR3ignDialog();
-  const [connections, setConnections] = useState(initialConnections);
-  const [savingId, setSavingId] = useState<string | null>(null);
+  const [discordIdentity, setDiscordIdentity] = useState(initialDiscordIdentity);
+  const [identityCount, setIdentityCount] = useState(initialIdentityCount);
+  const [busy, setBusy] = useState<"link" | "unlink" | null>(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const discord = connections.find(
-    (connection) => connection.provider.toLowerCase() === "discord"
-  );
 
-  async function unlink(connection: AccountConnection) {
+  async function linkDiscord() {
+    if (busy) return;
+    setBusy("link");
+    setError("");
+    setSuccess("");
+
+    try {
+      const { error: linkError } = await supabase.auth.linkIdentity({
+        provider: "discord",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback?next=/account`,
+        },
+      });
+      if (linkError) throw linkError;
+    } catch (linkError: unknown) {
+      setError(
+        linkError instanceof Error
+          ? linkError.message
+          : "Could not start Discord linking."
+      );
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function unlinkDiscord() {
+    if (busy) return;
+
     const confirmed = await confirm({
       title: "Unlink Discord",
-      message: "Remove this Discord connection from your R3IGN account?",
+      message: "Remove Discord as a sign-in method for your R3IGN account?",
       confirmLabel: "Unlink Discord",
       variant: "danger",
     });
-    if (!confirmed || savingId) return;
+    if (!confirmed) return;
 
-    const previous = connections;
-    setSavingId(connection.id);
-    setConnections((current) =>
-      current.filter((item) => item.id !== connection.id)
-    );
+    setBusy("unlink");
     setError("");
     setSuccess("");
+
     try {
-      const { error: unlinkError } = await supabase
-        .from("connections")
-        .delete()
-        .eq("id", connection.id)
-        .eq("profile_id", profileId);
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user) throw new Error("Your session has expired. Sign in again.");
+
+      const identities = user.identities ?? [];
+      if (identities.length <= 1) {
+        throw new Error(
+          "Discord is your only sign-in method and cannot be unlinked."
+        );
+      }
+
+      const identity = identities.find(
+        (candidate) => candidate.provider.toLowerCase() === "discord"
+      );
+      if (!identity) {
+        setDiscordIdentity(null);
+        setIdentityCount(identities.length);
+        router.refresh();
+        return;
+      }
+
+      const { error: unlinkError } =
+        await supabase.auth.unlinkIdentity(identity);
       if (unlinkError) throw unlinkError;
+
+      setDiscordIdentity(null);
+      setIdentityCount(identities.length - 1);
       setSuccess("Discord has been unlinked.");
+      router.refresh();
     } catch (unlinkError: unknown) {
-      setConnections(previous);
       setError(
         unlinkError instanceof Error
           ? unlinkError.message
           : "Could not unlink Discord."
       );
     } finally {
-      setSavingId(null);
+      setBusy(null);
     }
   }
 
   return (
     <ProfileSection title="Connections">
-      <SectionLoadError message={loadError} />
       <div className="profile-connection-row">
         <div>
           <strong>Discord</strong>
           <span className="profile-muted">
-            {discord
-              ? `Connected${discord.username ? ` as ${discord.username}` : ""}`
+            {discordIdentity
+              ? `Connected${discordIdentity.username ? ` as ${discordIdentity.username}` : ""}`
               : "Not linked"}
           </span>
         </div>
-        {discord ? (
+        {discordIdentity ? (
           <button
             type="button"
             className="btn btn-ghost profile-danger-action"
-            onClick={() => unlink(discord)}
-            disabled={savingId === discord.id}
+            onClick={unlinkDiscord}
+            disabled={busy !== null || identityCount <= 1}
           >
-            {savingId === discord.id ? "Unlinking…" : "Unlink"}
+            {busy === "unlink" ? "Unlinking…" : "Unlink"}
           </button>
         ) : (
-          <span className="profile-status-badge is-inactive">Not linked</span>
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={linkDiscord}
+            disabled={busy !== null}
+          >
+            {busy === "link" ? "Connecting…" : "Link Discord"}
+          </button>
         )}
       </div>
+      {discordIdentity && identityCount <= 1 && (
+        <p className="profile-inline-note">
+          Discord is your only sign-in method and cannot be unlinked.
+        </p>
+      )}
       <div className="profile-connection-row">
         <div>
           <strong>TikTok</strong>

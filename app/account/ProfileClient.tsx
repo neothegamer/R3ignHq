@@ -7,7 +7,6 @@ import ConnectionsSection from "@/components/profile/ConnectionsSection";
 import MyTeamsSection from "@/components/profile/MyTeamsSection";
 import SecuritySection from "@/components/profile/SecuritySection";
 import type {
-  AccountConnection,
   AccountLoadErrors,
   AccountProfile,
   BlockedUser,
@@ -22,7 +21,8 @@ type Props = {
   email: string;
   gameAccounts: GameAccount[];
   gameProfiles: GameProfile[];
-  connections: AccountConnection[];
+  discordIdentity: { username: string | null } | null;
+  identityCount: number;
   memberships: TeamMembership[];
   blockedUsers: BlockedUser[];
   mutedUsers: MutedUser[];
@@ -34,7 +34,8 @@ export default function ProfileClient({
   email,
   gameAccounts,
   gameProfiles,
-  connections,
+  discordIdentity,
+  identityCount,
   memberships,
   blockedUsers,
   mutedUsers,
@@ -74,9 +75,8 @@ export default function ProfileClient({
             loadError={loadErrors.games}
           />
           <ConnectionsSection
-            profileId={profile.id}
-            connections={connections}
-            loadError={loadErrors.connections}
+            discordIdentity={discordIdentity}
+            identityCount={identityCount}
           />
           <MyTeamsSection
             mode="account"
