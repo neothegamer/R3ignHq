@@ -10,13 +10,103 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { useR3ignDialog } from "@/components/R3ignDialog";
 
-const MAX_FILE_SIZE = 2_097_152;
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const MAX_COMPRESSED_FILE_SIZE = 2_097_152;
 const EXTENSION_BY_TYPE: Record<string, "png" | "jpg" | "webp"> = {
   "image/png": "png",
   "image/jpeg": "jpg",
   "image/webp": "webp",
 };
 const BUCKET = "profile-avatars";
+
+async function prepareAvatarImage(
+  file: File
+): Promise<{
+  blob: Blob;
+  extension: "webp" | "jpg";
+  contentType: "image/webp" | "image/jpeg";
+}> {
+  let bitmap: ImageBitmap;
+  try {
+    bitmap = await createImageBitmap(file, {
+      imageOrientation: "from-image",
+    });
+  } catch {
+    try {
+      bitmap = await createImageBitmap(file);
+    } catch {
+      throw new Error(
+        "Could not decode this image. Please choose another file."
+      );
+    }
+  }
+
+  try {
+    const cropSize = Math.min(bitmap.width, bitmap.height);
+    const outputSize = Math.min(512, cropSize);
+    const sourceX = (bitmap.width - cropSize) / 2;
+    const sourceY = (bitmap.height - cropSize) / 2;
+    const canvas = document.createElement("canvas");
+    canvas.width = outputSize;
+    canvas.height = outputSize;
+
+    const context = canvas.getContext("2d");
+    if (!context) {
+      throw new Error("Could not prepare this image for upload.");
+    }
+
+    const drawImage = () => {
+      context.drawImage(
+        bitmap,
+        sourceX,
+        sourceY,
+        cropSize,
+        cropSize,
+        0,
+        0,
+        outputSize,
+        outputSize
+      );
+    };
+    const encode = (type: "image/webp" | "image/jpeg", quality: number) =>
+      new Promise<Blob | null>((resolve) => {
+        canvas.toBlob(resolve, type, quality);
+      });
+
+    drawImage();
+    for (const quality of [0.85, 0.7, 0.55]) {
+      const blob = await encode("image/webp", quality);
+      if (!blob) {
+        throw new Error("Could not encode this image.");
+      }
+      if (blob.type !== "image/webp") break;
+      if (blob.size <= 500 * 1024 || quality === 0.55) {
+        return { blob, extension: "webp", contentType: "image/webp" };
+      }
+    }
+
+    context.clearRect(0, 0, outputSize, outputSize);
+    if (file.type === "image/png" || file.type === "image/webp") {
+      context.fillStyle = "#111";
+      context.fillRect(0, 0, outputSize, outputSize);
+    }
+    drawImage();
+
+    for (const quality of [0.85, 0.7, 0.55]) {
+      const blob = await encode("image/jpeg", quality);
+      if (!blob || blob.type !== "image/jpeg") {
+        throw new Error("Could not encode this image as JPEG.");
+      }
+      if (blob.size <= 500 * 1024 || quality === 0.55) {
+        return { blob, extension: "jpg", contentType: "image/jpeg" };
+      }
+    }
+
+    throw new Error("Could not encode this image.");
+  } finally {
+    bitmap.close();
+  }
+}
 
 type Props = {
   profileId: string;
@@ -36,6 +126,7 @@ export default function AvatarUploader({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [preparing, setPreparing] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [removing, setRemoving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -63,11 +154,11 @@ export default function AvatarUploader({
   useEffect(() => {
     if (!previewUrl) return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !uploading) closePreview();
+      if (event.key === "Escape" && !preparing && !uploading) closePreview();
     };
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, [closePreview, previewUrl, uploading]);
+  }, [closePreview, preparing, previewUrl, uploading]);
 
   function handleFileSelection(event: ChangeEvent<HTMLInputElement>) {
     const file = event.currentTarget.files?.[0];
@@ -82,7 +173,7 @@ export default function AvatarUploader({
     }
     if (file.size > MAX_FILE_SIZE) {
       setError(
-        "Image is too large. Choose a file no bigger than 2 MB (2,097,152 bytes)."
+        "Image is too large. Choose a file no bigger than 10 MB."
       );
       return;
     }
@@ -152,13 +243,20 @@ export default function AvatarUploader({
   }
 
   async function uploadPhoto() {
-    if (!selectedFile || uploading) return;
+    if (!selectedFile || preparing || uploading) return;
 
-    setUploading(true);
+    setPreparing(true);
     setError(null);
     let uploadedPath: string | null = null;
     let profileUpdated = false;
     try {
+      const preparedImage = await prepareAvatarImage(selectedFile);
+      if (preparedImage.blob.size > MAX_COMPRESSED_FILE_SIZE) {
+        throw new Error(
+          "Compressed image is too large to upload. Choose a smaller image."
+        );
+      }
+
       const {
         data: { user },
         error: authError,
@@ -168,15 +266,38 @@ export default function AvatarUploader({
         throw new Error("Sign in as this profile owner to change the avatar.");
       }
 
-      const extension = EXTENSION_BY_TYPE[selectedFile.type];
-      const path = `${user.id}/${crypto.randomUUID()}.${extension}`;
-      const { error: uploadError } = await supabase.storage
-        .from(BUCKET)
-        .upload(path, selectedFile, {
-          contentType: selectedFile.type,
-          upsert: false,
-        });
-      if (uploadError) throw uploadError;
+      const path = `${user.id}/${crypto.randomUUID()}.${preparedImage.extension}`;
+      setPreparing(false);
+      setUploading(true);
+      let uploadResult;
+      try {
+        uploadResult = await supabase.storage
+          .from(BUCKET)
+          .upload(path, preparedImage.blob, {
+            contentType: preparedImage.contentType,
+            upsert: false,
+          });
+      } catch (networkError: unknown) {
+        console.warn("Avatar upload failed:", networkError);
+        if (
+          networkError instanceof Error &&
+          /network|fetch|connection|timeout/i.test(networkError.message)
+        ) {
+          throw new Error(
+            "Upload failed. Check your connection and try again."
+          );
+        }
+        throw networkError;
+      }
+      if (uploadResult.error) {
+        if (/network|fetch|connection|timeout/i.test(uploadResult.error.message)) {
+          console.warn("Avatar upload failed:", uploadResult.error);
+          throw new Error(
+            "Upload failed. Check your connection and try again."
+          );
+        }
+        throw uploadResult.error;
+      }
       uploadedPath = path;
 
       const {
@@ -212,6 +333,7 @@ export default function AvatarUploader({
           : "Could not upload the avatar. Please try again."
       );
     } finally {
+      setPreparing(false);
       setUploading(false);
     }
   }
@@ -269,13 +391,13 @@ export default function AvatarUploader({
         accept="image/png,image/jpeg,image/webp"
         aria-label="Choose a profile photo"
         onChange={handleFileSelection}
-        disabled={uploading || removing}
+        disabled={preparing || uploading || removing}
       />
       <button
         type="button"
         className={`avatar-uploader-preview${uploading ? " is-uploading" : ""}`}
         onClick={() => fileInputRef.current?.click()}
-        disabled={uploading || removing}
+        disabled={preparing || uploading || removing}
         aria-label="Change profile photo"
       >
         {avatarUrl ? (
@@ -285,14 +407,14 @@ export default function AvatarUploader({
             {(displayName.trim().charAt(0) || "R").toUpperCase()}
           </span>
         )}
-        {uploading && <span className="avatar-uploader-spinner" aria-hidden="true" />}
+        {(preparing || uploading) && <span className="avatar-uploader-spinner" aria-hidden="true" />}
       </button>
       <div className="avatar-uploader-actions">
         <button
           type="button"
           className="btn btn-ghost"
           onClick={() => fileInputRef.current?.click()}
-          disabled={uploading || removing}
+          disabled={preparing || uploading || removing}
         >
           Change photo
         </button>
@@ -301,7 +423,7 @@ export default function AvatarUploader({
             type="button"
             className="btn btn-ghost"
             onClick={removeAvatar}
-            disabled={uploading || removing}
+            disabled={preparing || uploading || removing}
           >
             {removing ? "Removing…" : "Remove avatar"}
           </button>
@@ -323,7 +445,11 @@ export default function AvatarUploader({
           className="avatar-preview-overlay"
           role="presentation"
           onMouseDown={(event) => {
-            if (event.target === event.currentTarget && !uploading) {
+            if (
+              event.target === event.currentTarget &&
+              !preparing &&
+              !uploading
+            ) {
               closePreview();
             }
           }}
@@ -338,6 +464,11 @@ export default function AvatarUploader({
             <h2 id="avatar-preview-title">Preview profile photo</h2>
             <img className="avatar-preview-image" src={previewUrl} alt="Selected profile photo preview" />
             <p id="avatar-preview-hint">A square image looks best.</p>
+            {(preparing || uploading) && (
+              <p role="status">
+                {preparing ? "Preparing image..." : "Uploading..."}
+              </p>
+            )}
             {error && (
               <p className="avatar-uploader-error" role="alert">
                 {error}
@@ -348,7 +479,7 @@ export default function AvatarUploader({
                 type="button"
                 className="btn btn-ghost"
                 onClick={closePreview}
-                disabled={uploading}
+                disabled={preparing || uploading}
               >
                 Cancel
               </button>
@@ -356,9 +487,13 @@ export default function AvatarUploader({
                 type="button"
                 className="btn btn-primary"
                 onClick={uploadPhoto}
-                disabled={uploading}
+                disabled={preparing || uploading}
               >
-                {uploading ? "Uploading…" : "Upload photo"}
+                {preparing
+                  ? "Preparing image..."
+                  : uploading
+                    ? "Uploading..."
+                    : "Upload photo"}
               </button>
             </div>
           </section>
