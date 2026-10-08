@@ -404,7 +404,7 @@ export default function AvatarUploader({
           <img src={avatarUrl} alt="" />
         ) : (
           <span aria-hidden="true">
-            {(displayName.trim().charAt(0) || "R").toUpperCase()}
+            {displayName.match(/[a-z]/i)?.[0].toUpperCase() ?? "R"}
           </span>
         )}
         {(preparing || uploading) && <span className="avatar-uploader-spinner" aria-hidden="true" />}

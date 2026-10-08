@@ -2991,9 +2991,65 @@ body:has(.msg-layout) .site-footer {
 }
 .nav-account .nav-profile-link,
 .nav-account .nav-icon-link {
-  width: 34px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   margin: 0;
+}
+.nav-account-menu-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.nav-account-menu-toggle {
+  display: inline-flex;
+  width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--paper-dim);
+  cursor: pointer;
+}
+.nav-account-menu-toggle:hover,
+.nav-account-menu-toggle:focus-visible {
+  color: var(--signal, #c83c32);
+}
+.nav-account-menu-toggle svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.nav-account-menu {
+  position: absolute;
+  z-index: 1000;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  display: grid;
+  width: min(220px, calc(100vw - 1rem));
+  padding: 0.35rem;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 35%);
+}
+.nav-account-menu a {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  padding: 0.65rem 0.8rem;
+  color: var(--paper);
+  text-decoration: none;
+}
+.nav-account-menu a:hover,
+.nav-account-menu a:focus-visible,
+.nav-account-menu a[aria-current="page"] {
+  background: var(--panel-2);
+  color: var(--signal, #c83c32);
 }
 .nav-message-icon {
   display: inline-flex;
