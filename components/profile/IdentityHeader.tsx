@@ -76,6 +76,7 @@ function memberSince(date: string | null) {
 
 export default function IdentityHeader(props: Props) {
   const { profile } = props;
+  const publicId = profile.player_id || profile.league_id;
   const isPublic = props.mode === "public";
   const email = isPublic ? "" : props.email;
   const onProfileChange = (changes: Partial<AccountProfile>) => {
@@ -249,12 +250,9 @@ export default function IdentityHeader(props: Props) {
           <span className="eyebrow">R3IGN Player</span>
           <h1>{profile.display_name || "Player"}</h1>
           <div className="public-profile-identifiers">
-            {profile.league_id && (
-              <span className="public-profile-badge">{profile.league_id}</span>
-            )}
-            {profile.player_id && profile.player_id !== profile.league_id && (
+            {publicId && (
               <span className="public-profile-badge">
-                Player ID · {profile.player_id}
+                Player ID · {publicId}
               </span>
             )}
             {profile.country && (
@@ -318,10 +316,10 @@ export default function IdentityHeader(props: Props) {
               <h2>{profile.display_name || "R3IGN Player"}</h2>
               <p>{email || "No email address available"}</p>
             </div>
-            {profile.league_id && (
+            {publicId && (
               <div className="profile-public-actions">
                 <Link
-                  href={`/player/${encodeURIComponent(profile.league_id)}`}
+                  href={`/player/${encodeURIComponent(publicId)}`}
                   target="_blank"
                   rel="noreferrer"
                   className="btn btn-ghost"
@@ -333,7 +331,7 @@ export default function IdentityHeader(props: Props) {
                   className="btn btn-ghost"
                   onClick={() =>
                     copyValue(
-                      `${window.location.origin}/player/${encodeURIComponent(profile.league_id!)}`,
+                      `${window.location.origin}/player/${encodeURIComponent(publicId)}`,
                       "Link copied"
                     )
                   }
@@ -345,24 +343,14 @@ export default function IdentityHeader(props: Props) {
           </div>
 
           <div className="profile-id-badges">
-            {profile.league_id && (
+            {publicId && (
               <button
                 type="button"
                 className="profile-id-badge"
-                onClick={() => copyValue(profile.league_id!, "League ID copied")}
-                title="Copy League ID"
-              >
-                League ID · {profile.league_id}
-              </button>
-            )}
-            {profile.player_id && (
-              <button
-                type="button"
-                className="profile-id-badge"
-                onClick={() => copyValue(profile.player_id!, "Player ID copied")}
+                onClick={() => copyValue(publicId, "Player ID copied")}
                 title="Copy Player ID"
               >
-                Player ID · {profile.player_id}
+                Player ID · {publicId}
               </button>
             )}
             {copied && <span className="profile-copy-feedback">{copied}</span>}

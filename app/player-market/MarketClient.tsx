@@ -17,6 +17,7 @@ type Listing = {
   profile?: {
     display_name?: string | null;
     league_id?: string | null;
+    player_id?: string | null;
     avatar_url?: string | null;
   } | null;
 };
@@ -52,7 +53,7 @@ export default function MarketClient() {
     setListError(null);
     const { data, error } = await supabase
       .from("player_listings")
-      .select("*, profile:profiles(display_name,league_id,avatar_url)")
+      .select("*, profile:profiles(display_name,league_id,player_id,avatar_url)")
       .eq("status", "active")
       .order("created_at", { ascending: false })
       .limit(24);
@@ -192,6 +193,8 @@ export default function MarketClient() {
             ) : (
               visibleListings.map((listing) => {
                 const isOwn = userId && listing.profile_id === userId;
+                const publicId =
+                  listing.profile?.player_id || listing.profile?.league_id;
                 const canMessage =
                   listing.profile_id && !isOwn && userId;
                 const messageHref = listing.profile_id
@@ -203,10 +206,10 @@ export default function MarketClient() {
                     <div className="role">{listing.role || "Player"}</div>
                     <div className="market-player-identity">
                       {listing.profile?.avatar_url &&
-                        (listing.profile.league_id ? (
+                        (publicId ? (
                           <Link
-                            href={`/player/${encodeURIComponent(listing.profile.league_id)}`}
-                            aria-label={`View ${listing.profile.display_name || listing.ign || "player"} profile`}
+                            href={`/player/${encodeURIComponent(publicId)}`}
+                            aria-label={`View ${listing.profile?.display_name || listing.ign || "player"} profile`}
                           >
                             <img src={listing.profile.avatar_url} alt="" />
                           </Link>
@@ -214,11 +217,11 @@ export default function MarketClient() {
                           <img src={listing.profile.avatar_url} alt="" />
                         ))}
                       <h3>
-                        {listing.profile?.league_id ? (
+                        {publicId ? (
                           <Link
-                            href={`/player/${encodeURIComponent(listing.profile.league_id)}`}
+                            href={`/player/${encodeURIComponent(publicId)}`}
                           >
-                            {listing.profile.display_name || listing.ign || "Player"}
+                            {listing.profile?.display_name || listing.ign || "Player"}
                           </Link>
                         ) : (
                           listing.profile?.display_name || listing.ign || "Player"

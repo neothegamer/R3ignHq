@@ -63,6 +63,15 @@ type RankingRow = {
   losses: number | null;
 };
 
+type OrgMember = {
+  role: string;
+  joined_at: string;
+  display_name: string | null;
+  league_id: string | null;
+  player_id: string | null;
+  avatar_url: string | null;
+};
+
 const SAMPLE_ORGS: Record<string, OrgProfile> = {
   "aether-esports": {
     name: "Aether Esports",
@@ -236,7 +245,7 @@ function slugify(name: string) {
 
 async function loadLiveOrg(
   slug: string
-): Promise<{ live: boolean; org?: OrgProfile }> {
+): Promise<{ live: boolean; org?: OrgProfile; members?: OrgMember[] }> {
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -247,6 +256,43 @@ async function loadLiveOrg(
 
   const row = (data as OrgRow[]).find((o) => slugify(o.name) === slug);
   if (!row) return { live: true };
+
+  const { data: memberRows, error: membersError } = await supabase
+    .from("organization_members")
+    .select(
+      "role,joined_at,profile:profiles!organization_members_profile_id_fkey(display_name,league_id,player_id,avatar_url)"
+    )
+    .eq("organization_id", row.id)
+    .eq("status", "active");
+
+  if (membersError) throw membersError;
+
+  const rolePriority: Record<string, number> = {
+    owner: 0,
+    captain: 1,
+    coach: 2,
+    manager: 2,
+    player: 3,
+  };
+  const members: OrgMember[] = (memberRows ?? [])
+    .map((member) => ({
+      role: member.role,
+      joined_at: member.joined_at,
+      display_name: member.profile?.display_name ?? null,
+      league_id: member.profile?.league_id ?? null,
+      player_id: member.profile?.player_id ?? null,
+      avatar_url: member.profile?.avatar_url ?? null,
+    }))
+    .sort((a, b) => {
+      const roleOrder =
+        (rolePriority[a.role.toLowerCase()] ?? 4) -
+        (rolePriority[b.role.toLowerCase()] ?? 4);
+      if (roleOrder !== 0) return roleOrder;
+
+      return (a.display_name ?? "").localeCompare(b.display_name ?? "", "en", {
+        sensitivity: "base",
+      });
+    });
 
   const rankingCols = "organization_id, team_name, league, season, wins, losses";
 
@@ -284,6 +330,7 @@ async function loadLiveOrg(
 
   return {
     live: true,
+    members,
     org: {
       name: row.name,
       tag: row.tag,
@@ -370,6 +417,7 @@ export default async function OrgPage({ searchParams }: Props) {
           },
         ]
       : []);
+  const rosterMembers = result.live ? (result.members ?? []) : [];
 
   return (
     <main id="main-content">
@@ -416,13 +464,65 @@ export default async function OrgPage({ searchParams }: Props) {
               <div>
                 <div className="form-panel">
                   <span className="eyebrow">Roster</span>
-                  <p
-                    className="lede"
-                    id="org-roster"
-                    style={{ marginTop: "0.75rem", whiteSpace: "pre-line" }}
-                  >
-                    {org.roster || "No roster listed yet."}
-                  </p>
+                  {result.live ? (
+                    rosterMembers.length > 0 ? (
+                      <ul className="org-roster-grid" id="org-roster">
+                        {rosterMembers.map((member, index) => {
+                          const memberName = member.display_name || "Player";
+                          const publicId = member.player_id || member.league_id;
+                          const memberContent = (
+                            <>
+                              <span className="org-roster-avatar">
+                                {member.avatar_url ? (
+                                  <img src={member.avatar_url} alt="" />
+                                ) : (
+                                  memberName.charAt(0).toUpperCase()
+                                )}
+                              </span>
+                              <span className="org-roster-member-info">
+                                <strong>{memberName}</strong>
+                                <span className="org-roster-role">
+                                  {member.role}
+                                </span>
+                              </span>
+                            </>
+                          );
+
+                          return (
+                            <li
+                              className="org-roster-member"
+                              key={`${publicId ?? member.role}-${index}`}
+                            >
+                              {publicId ? (
+                                <Link
+                                  href={`/player/${encodeURIComponent(publicId)}`}
+                                  className="org-roster-member-link"
+                                >
+                                  {memberContent}
+                                </Link>
+                              ) : (
+                                <div className="org-roster-member-link">
+                                  {memberContent}
+                                </div>
+                              )}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    ) : (
+                      <p className="lede org-roster-empty" id="org-roster">
+                        No active members listed yet.
+                      </p>
+                    )
+                  ) : (
+                    <p
+                      className="lede"
+                      id="org-roster"
+                      style={{ marginTop: "0.75rem", whiteSpace: "pre-line" }}
+                    >
+                      {org.roster || "No roster listed yet."}
+                    </p>
+                  )}
                 </div>
                 <div className="form-panel mt-lg">
                   <span className="eyebrow">League Record</span>

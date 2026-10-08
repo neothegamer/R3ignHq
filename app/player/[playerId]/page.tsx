@@ -13,7 +13,7 @@ import type {
 export const revalidate = 60;
 
 type PageProps = {
-  params: Promise<{ leagueId: string }>;
+  params: Promise<{ playerId: string }>;
 };
 
 export const metadata: Metadata = {
@@ -22,18 +22,18 @@ export const metadata: Metadata = {
 };
 
 export default async function PlayerProfilePage({ params }: PageProps) {
-  const { leagueId } = await params;
-  const raw = (leagueId ?? "").trim();
-  const normalizedLeagueId = raw.toUpperCase();
-  const normalizedWithoutHyphen = normalizedLeagueId.replace(/-/g, "");
-  const leagueCandidates = Array.from(
+  const { playerId } = await params;
+  const raw = (playerId ?? "").trim();
+  const normalizedPlayerId = raw.toUpperCase();
+  const normalizedWithoutHyphen = normalizedPlayerId.replace(/-/g, "");
+  const playerCandidates = Array.from(
     new Set([
-      normalizedLeagueId,
+      normalizedPlayerId,
       normalizedWithoutHyphen,
-      normalizedLeagueId.replace(/^R3N\-?/i, "R3N-"),
-      normalizedLeagueId.replace(/^R3E\-?/i, "R3E"),
-      normalizedLeagueId.replace(/^R3N/i, "R3N-"),
-      normalizedLeagueId.replace(/^R3E/i, "R3E"),
+      normalizedPlayerId.replace(/^R3N\-?/i, "R3N-"),
+      normalizedPlayerId.replace(/^R3E\-?/i, "R3E"),
+      normalizedPlayerId.replace(/^R3N/i, "R3N-"),
+      normalizedPlayerId.replace(/^R3E/i, "R3E"),
     ])
   ).filter(Boolean);
 
@@ -43,7 +43,7 @@ export default async function PlayerProfilePage({ params }: PageProps) {
     .select(
       "id, display_name, league_id, player_id, avatar_url, country, created_at, bio, selected_games"
     )
-    .in("league_id", leagueCandidates)
+    .in("player_id", playerCandidates)
     .maybeSingle();
 
   if (profileError) throw profileError;
@@ -99,7 +99,7 @@ export default async function PlayerProfilePage({ params }: PageProps) {
     id: profile.id,
     display_name: profile.display_name,
     league_id: profile.league_id,
-    player_id: profile.player_id,
+    player_id: profile.player_id || profile.league_id,
     avatar_url: profile.avatar_url,
     country: profile.country,
     created_at: profile.created_at,

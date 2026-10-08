@@ -46,7 +46,11 @@ type GameAccount = {
   profile: ProfileInfo | ProfileInfo[] | null;
 };
 
-type ProfileInfo = { display_name: string | null; league_id: string | null };
+type ProfileInfo = {
+  display_name: string | null;
+  league_id: string | null;
+  player_id: string | null;
+};
 
 type EventRow = {
   id: string;
@@ -99,6 +103,7 @@ type ProfileMatch = {
   id: string;
   display_name: string | null;
   league_id: string | null;
+  player_id: string | null;
 };
 
 type Draft = {
@@ -213,7 +218,7 @@ export default function AdminClient() {
       supabase
         .from("game_accounts")
         .select(
-          "id,profile_id,game,ign,game_uid,verification_status,verification_code,updated_at,profile:profiles(display_name,league_id)"
+          "id,profile_id,game,ign,game_uid,verification_status,verification_code,updated_at,profile:profiles(display_name,league_id,player_id)"
         )
         .order("updated_at", { ascending: false }),
       supabase
@@ -239,7 +244,7 @@ export default function AdminClient() {
       supabase
         .from("admins")
         .select(
-          "profile_id,created_at,profile:profiles(display_name,league_id)"
+          "profile_id,created_at,profile:profiles(display_name,league_id,player_id)"
         )
         .order("created_at", { ascending: true }),
       supabase.auth.getUser(),
@@ -383,19 +388,27 @@ export default function AdminClient() {
     setLookingUp(true);
     setLookupError(null);
     setProfileMatch(null);
-    const leagueId = lookupValue.trim().toUpperCase();
-    if (!/^R3E\d{6}$/.test(leagueId)) {
-      setLookupError("Enter a valid League ID in the format R3E######.");
+    const playerId = lookupValue.trim().toUpperCase();
+    if (!/^(?:R3N-?\d{6}|R3E\d{6})$/.test(playerId)) {
+      setLookupError("Enter a valid Player ID in the format R3N-######.");
       setLookingUp(false);
       return;
     }
-    const { data, error } = await supabase
+    let result = await supabase
       .from("profiles")
-      .select("id,display_name,league_id")
-      .eq("league_id", leagueId)
+      .select("id,display_name,league_id,player_id")
+      .eq("player_id", playerId)
       .maybeSingle();
+    if (!result.error && !result.data) {
+      result = await supabase
+        .from("profiles")
+        .select("id,display_name,league_id,player_id")
+        .eq("league_id", playerId)
+        .maybeSingle();
+    }
+    const { data, error } = result;
     if (error) setLookupError(error.message);
-    else if (!data) setLookupError("No player was found with that League ID.");
+    else if (!data) setLookupError("No player was found with that Player ID.");
     else {
       const match = data as ProfileMatch;
       if (admins.some((admin) => admin.profile_id === match.id)) {
@@ -416,18 +429,19 @@ export default function AdminClient() {
       profile: {
         display_name: match.display_name,
         league_id: match.league_id,
+        player_id: match.player_id,
       },
     };
     const previous = admins;
     void runConfirmed(
-      `Promote ${match.display_name || match.league_id || "this player"} to administrator?`,
+      `Promote ${match.display_name || match.player_id || match.league_id || "this player"} to administrator?`,
       async () => {
         setAdmins((items) => [...items, temp]);
         const { data, error } = await supabase
           .from("admins")
           .insert({ profile_id: match.id })
           .select(
-            "profile_id,created_at,profile:profiles(display_name,league_id)"
+            "profile_id,created_at,profile:profiles(display_name,league_id,player_id)"
           )
           .single();
         if (error) {
@@ -463,7 +477,10 @@ export default function AdminClient() {
     const previous = admins;
     const profile = profileInfo(row.profile);
     const name =
-      profile?.display_name || profile?.league_id || row.profile_id;
+      profile?.display_name ||
+      profile?.player_id ||
+      profile?.league_id ||
+      row.profile_id;
     void runConfirmed(`Remove ${name} as an administrator?`, async () => {
       setAdmins((items) =>
         items.filter((item) => item.profile_id !== row.profile_id)
@@ -892,7 +909,7 @@ export default function AdminClient() {
                           </div>
                           <dl className="admin-detail-grid">
                             <div><dt>Player</dt><dd>{profileInfo(row.profile)?.display_name || "Unknown player"}</dd></div>
-                            <div><dt>League ID</dt><dd>{profileInfo(row.profile)?.league_id || "—"}</dd></div>
+                            <div><dt>Player ID</dt><dd>{profileInfo(row.profile)?.player_id || profileInfo(row.profile)?.league_id || "—"}</dd></div>
                             <div><dt>Game UID</dt><dd>{row.game_uid || "—"}</dd></div>
                             <div><dt>Verification code</dt><dd>{row.verification_code || "—"}</dd></div>
                           </dl>
@@ -1028,19 +1045,19 @@ export default function AdminClient() {
                 <section aria-labelledby="admin-section-heading">
                   <h2 id="admin-section-heading">Manage Administrators</h2>
                   <form className="admin-lookup" onSubmit={findProfile}>
-                    <label htmlFor="admin-league-id">Promote player by League ID</label>
+                    <label htmlFor="admin-player-id">Promote player by Player ID</label>
                     <div className="admin-lookup-controls">
                       <input
-                        id="admin-league-id"
+                        id="admin-player-id"
                         value={lookupValue}
                         onChange={(event) => {
                           setLookupValue(event.target.value);
                           setProfileMatch(null);
                           setLookupError(null);
                         }}
-                        placeholder="R3E000000"
-                        maxLength={9}
-                        pattern="R3E[0-9]{6}"
+                        placeholder="R3N-050758"
+                        maxLength={10}
+                        pattern="(R3N-?[0-9]{6}|R3E[0-9]{6})"
                         required
                       />
                       <button className="btn btn-ghost" disabled={lookingUp || busy} type="submit">
@@ -1050,7 +1067,7 @@ export default function AdminClient() {
                     {lookupError && <p className="admin-inline-error" role="alert">{lookupError}</p>}
                     {profileMatch && (
                       <div className="admin-match">
-                        <span>{profileMatch.display_name || "Unnamed player"} · {profileMatch.league_id}</span>
+                        <span>{profileMatch.display_name || "Unnamed player"} · {profileMatch.player_id || profileMatch.league_id}</span>
                         <button className="btn btn-primary" disabled={busy} type="button" onClick={promoteAdmin}>Promote to Admin</button>
                       </div>
                     )}
@@ -1063,7 +1080,7 @@ export default function AdminClient() {
                         <article className="admin-record admin-admin-row" key={row.profile_id}>
                           <div>
                             <h3>{profileInfo(row.profile)?.display_name || "Unnamed player"}</h3>
-                            <p className="admin-muted">{profileInfo(row.profile)?.league_id || row.profile_id}</p>
+                            <p className="admin-muted">{profileInfo(row.profile)?.player_id || profileInfo(row.profile)?.league_id || row.profile_id}</p>
                           </div>
                           <div className="admin-actions">
                             <span className="admin-record-date">Added {dateLabel(row.created_at)}</span>
