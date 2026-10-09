@@ -34,12 +34,6 @@ const emptyValues = (): GameFormValues => ({
   rbsl: { ign: "", uid: "" },
 });
 
-function statusClass(status: string) {
-  if (status === "verified") return "is-verified";
-  if (status === "rejected") return "is-rejected";
-  return "is-pending";
-}
-
 export default function GameAccountsSection({
   mode = "account",
   profileId,
@@ -152,7 +146,7 @@ export default function GameAccountsSection({
           a.game.localeCompare(b.game)
         );
       });
-      setSuccess("Game accounts saved. New or changed accounts are pending review.");
+      setSuccess("Game accounts saved.");
       setShowForm(false);
     } catch (saveError: unknown) {
       setError(
@@ -236,19 +230,7 @@ export default function GameAccountsSection({
                     <h3>{account.ign}</h3>
                     <p>UID: {account.game_uid || "Not provided"}</p>
                   </div>
-                  <span
-                    className={`profile-status-badge ${statusClass(account.verification_status)}`}
-                  >
-                    {account.verification_status}
-                  </span>
                 </div>
-                {mode === "account" && account.verification_code &&
-                  account.verification_status !== "verified" && (
-                    <p className="profile-game-verification-code">
-                      Verification code: <code>{account.verification_code}</code>
-                      . An administrator will check this against your in-game profile.
-                    </p>
-                  )}
                 {account.team_clan && (
                   <p className="profile-team-clan">
                     Team / clan: <strong>{account.team_clan}</strong>
@@ -323,8 +305,7 @@ export default function GameAccountsSection({
               </button>
             </div>
             <p className="profile-muted">
-              Select the games you play and add your in-game name. League staff
-              review each submission; verification is not automatic.
+              Select the games you play and add your in-game name and UID.
             </p>
             <form onSubmit={saveAccounts}>
               <div className="profile-game-picker">
@@ -336,8 +317,9 @@ export default function GameAccountsSection({
                         type="checkbox"
                         checked={checked}
                         onChange={(event) => {
+                          const isChecked = event.currentTarget.checked;
                           setSelectedGames((current) =>
-                            event.currentTarget.checked
+                            isChecked
                               ? [...current, game.id]
                               : current.filter((id) => id !== game.id)
                           );

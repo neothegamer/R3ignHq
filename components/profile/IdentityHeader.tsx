@@ -23,45 +23,24 @@ type PublicProps = {
 
 type Props = AccountProps | PublicProps;
 
-type CountryOption = { code: string; name: string };
+/** Competitive regions (COD Mobile Global leaderboard-style regions). */
+const REGIONS = [
+  "Africa",
+  "Asia",
+  "Europe",
+  "North America",
+  "Oceania",
+  "Other",
+  "South America",
+] as const;
 
-function getCountryOptions(): CountryOption[] {
-  const names = new Intl.DisplayNames(["en"], { type: "region" });
-  const countries: CountryOption[] = [];
-  for (let first = 65; first <= 90; first += 1) {
-    for (let second = 65; second <= 90; second += 1) {
-      const code = String.fromCharCode(first, second);
-      const name = names.of(code);
-      if (name && name !== code) countries.push({ code, name });
-    }
-  }
-  return countries.sort((a, b) => a.name.localeCompare(b.name));
-}
+type Region = (typeof REGIONS)[number];
 
-const GAME_LABELS: Record<string, string> = {
-  rcml: "RCML",
-  rfcl: "RFCL",
-  rbsl: "RBSL",
-};
-
-function countryFlag(code: string) {
-  if (!/^[A-Z]{2}$/.test(code)) return "";
-  return String.fromCodePoint(
-    ...Array.from(code, (letter) => letter.charCodeAt(0) + 127397)
-  );
-}
-
-function countryCodeFor(value: string | null, countryOptions: CountryOption[]) {
+function normalizeRegion(value: string | null | undefined): Region | "" {
   if (!value) return "";
   const normalized = value.trim().toLowerCase();
-  return (
-    countryOptions.find(
-      ({ code, name }) =>
-        code.toLowerCase() === normalized ||
-        name.toLowerCase() === normalized
-    )?.code ??
-    (/^[a-z]{2}$/i.test(value) ? value.toUpperCase() : "")
-  );
+  const match = REGIONS.find((region) => region.toLowerCase() === normalized);
+  return match ?? "";
 }
 
 function memberSince(date: string | null) {
@@ -93,9 +72,14 @@ export default function IdentityHeader(props: Props) {
   const [nameMessage, setNameMessage] = useState("");
   const [bioMessage, setBioMessage] = useState("");
   const [countryMessage, setCountryMessage] = useState("");
-  const [countryOptions, setCountryOptions] = useState<CountryOption[]>([]);
+  const [region, setRegion] = useState<string>(() => normalizeRegion(profile.country));
   const [copied, setCopied] = useState("");
   const online = isOnline(profile.id);
+
+  useEffect(() => {
+    setRegion(normalizeRegion(profile.country));
+  }, [profile.country]);
+
   const nameValue = profile.display_name ?? "";
 
   useEffect(() => {
@@ -105,10 +89,6 @@ export default function IdentityHeader(props: Props) {
   useEffect(() => {
     setBio(profile.bio ?? "");
   }, [profile.bio]);
-
-  useEffect(() => {
-    setCountryOptions(getCountryOptions());
-  }, []);
 
   async function copyValue(value: string, label: string) {
     try {
@@ -202,39 +182,38 @@ export default function IdentityHeader(props: Props) {
     }
   }
 
-  async function saveCountry(value: string) {
-    const nextCountry = value || null;
+  async function saveRegion(event?: { preventDefault?: () => void }) {
+    event?.preventDefault?.();
+    const nextRegion = region.trim() || null;
+    if (nextRegion && !normalizeRegion(nextRegion)) {
+      setCountryMessage("Choose a valid region from the list.");
+      return;
+    }
     const previous = profile.country;
     setSavingCountry(true);
     setCountryMessage("");
-    onProfileChange({ country: nextCountry });
+    onProfileChange({ country: nextRegion });
     try {
       const { error } = await supabase
         .from("profiles")
-        .update({ country: nextCountry })
-        .eq("id", profile.id);
+        .update({ country: nextRegion })
+        .eq("id", profile.id)
+        .select("id")
+        .single();
       if (error) throw error;
-      setCountryMessage("Country saved.");
+      setCountryMessage("Region saved.");
     } catch (error: unknown) {
       onProfileChange({ country: previous });
+      setRegion(normalizeRegion(previous));
       setCountryMessage(
         error instanceof Error
           ? error.message
-          : "Could not save your country."
+          : "Could not save your region."
       );
     } finally {
       setSavingCountry(false);
     }
   }
-
-  const countryCode = countryCodeFor(profile.country, countryOptions);
-  const availableCountryOptions =
-    profile.country &&
-    !countryOptions.some(
-      ({ name, code }) => name === profile.country || code === profile.country
-    )
-      ? [{ code: "", name: profile.country }, ...countryOptions]
-      : countryOptions;
 
   if (isPublic) {
     return (
@@ -257,8 +236,7 @@ export default function IdentityHeader(props: Props) {
             )}
             {profile.country && (
               <span className="public-profile-badge">
-                {countryFlag(countryCodeFor(profile.country, countryOptions))}{" "}
-                {profile.country}
+                {normalizeRegion(profile.country) || profile.country}
               </span>
             )}
           </div>
@@ -271,15 +249,6 @@ export default function IdentityHeader(props: Props) {
             <span> · Member since {memberSince(profile.created_at)}</span>
           </p>
           {profile.bio && <p className="public-profile-bio">{profile.bio}</p>}
-          {(profile.selected_games ?? []).length > 0 && (
-            <div className="public-profile-games" aria-label="Selected games">
-              {profile.selected_games?.map((game) => (
-                <span className="public-profile-badge" key={game}>
-                  {GAME_LABELS[game.toLowerCase()] ?? game.toUpperCase()}
-                </span>
-              ))}
-            </div>
-          )}
         </div>
       </section>
     );
@@ -390,34 +359,32 @@ export default function IdentityHeader(props: Props) {
             </form>
 
             <div className="profile-edit-field">
-              <label htmlFor="account-country">Country</label>
+              <label htmlFor="account-region">Region</label>
               <div className="profile-inline-control">
                 <select
-                  id="account-country"
-                  value={
-                    availableCountryOptions.find(
-                      ({ name }) => name === profile.country
-                    )?.name ??
-                    availableCountryOptions.find(
-                      ({ code }) => code === profile.country
-                    )?.name ??
-                    ""
-                  }
+                  id="account-region"
+                  value={region}
                   disabled={savingCountry}
-                  onChange={(event) => saveCountry(event.currentTarget.value)}
+                  onChange={(event) => {
+                    setRegion(event.currentTarget.value);
+                    setCountryMessage("");
+                  }}
                 >
-                  <option value="">Select country</option>
-                  {availableCountryOptions.map(({ code, name: countryName }) => (
-                    <option key={`${code}-${countryName}`} value={countryName}>
-                      {countryFlag(code)} {countryName}
+                  <option value="">Select region</option>
+                  {REGIONS.map((r) => (
+                    <option key={r} value={r}>
+                      {r}
                     </option>
                   ))}
                 </select>
-                {countryCode && (
-                  <span aria-hidden="true" className="profile-country-flag">
-                    {countryFlag(countryCode)}
-                  </span>
-                )}
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  disabled={savingCountry || region === normalizeRegion(profile.country)}
+                  onClick={() => saveRegion()}
+                >
+                  {savingCountry ? "Saving…" : "Save"}
+                </button>
               </div>
               {countryMessage && (
                 <p
@@ -471,21 +438,6 @@ export default function IdentityHeader(props: Props) {
             <span>Member since {memberSince(profile.created_at)}</span>
             <span>·</span>
             <span>{online ? "Currently online" : "Currently offline"}</span>
-          </div>
-          <div className="profile-selected-games">
-            <strong>Selected games</strong>
-            {profile.selected_games?.length ? (
-              profile.selected_games.map((game) => (
-                <span
-                  className={`profile-game-chip profile-game-chip-${game.toLowerCase()}`}
-                  key={game}
-                >
-                  {GAME_LABELS[game.toLowerCase()] ?? game.toUpperCase()}
-                </span>
-              ))
-            ) : (
-              <span className="profile-muted">No games selected</span>
-            )}
           </div>
         </div>
       </div>

@@ -49,7 +49,8 @@ export default async function OnboardingPage({
   }
 
   if (profile.onboarding_completed && !allowEdit) {
-    redirect("/account");
+    const destId = profile.player_id || profile.league_id || user.id;
+    redirect(`/player/${encodeURIComponent(destId)}`);
   }
 
   const validGames: OnboardingGameId[] = ["codm", "freefire", "bloodstrike"];

@@ -6,8 +6,20 @@ import type { Database } from "@/lib/database.types";
  * Session refresh per @supabase/ssr pattern.
  * Must call getUser() (not getSession) so the refresh token is rotated
  * and cookies are written back — otherwise users get silently logged out.
+ *
+ * Fail-open: network / config errors are logged and treated as "logged out"
+ * so the rest of the site still loads.
  */
 export async function updateSession(request: NextRequest) {
+  // Temporary debug – remove once the env issue is fixed
+  console.log("=== SUPABASE ENV CHECK ===");
+  console.log("URL:", process.env.NEXT_PUBLIC_SUPABASE_URL);
+  console.log(
+    "KEY starts with:",
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.slice(0, 25)
+  );
+  console.log("==========================");
+
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient<Database>(
@@ -32,9 +44,21 @@ export async function updateSession(request: NextRequest) {
   );
 
   // IMPORTANT: do not remove — refreshes the session on every matched request.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let user = null;
+  try {
+    const {
+      data: { user: authUser },
+    } = await supabase.auth.getUser();
+    user = authUser;
+  } catch (err: any) {
+    // AuthRetryableFetchError (status 0), network issues, missing env, etc.
+    console.error(
+      "[middleware] auth.getUser failed:",
+      err?.name,
+      err?.message
+    );
+    // Continue as logged-out so the page still renders
+  }
 
   const path = request.nextUrl.pathname;
 
@@ -64,17 +88,25 @@ export async function updateSession(request: NextRequest) {
   );
 
   if (user && !bypassesOnboardingGate) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("onboarding_completed")
-      .eq("id", user.id)
-      .maybeSingle();
+    try {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("onboarding_completed")
+        .eq("id", user.id)
+        .maybeSingle();
 
-    if (profile?.onboarding_completed === false) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/onboarding";
-      url.search = "";
-      return NextResponse.redirect(url);
+      if (profile?.onboarding_completed === false) {
+        const url = request.nextUrl.clone();
+        url.pathname = "/onboarding";
+        url.search = "";
+        return NextResponse.redirect(url);
+      }
+    } catch (err: any) {
+      console.error(
+        "[middleware] profiles query failed:",
+        err?.message ?? err
+      );
+      // Fail open – don’t block the request
     }
   }
 

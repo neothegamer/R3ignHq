@@ -50,6 +50,13 @@ const GAMES: Record<
 };
 
 const GAME_ORDER: OnboardingGameId[] = ["codm", "freefire", "bloodstrike"];
+
+/** Map onboarding game ids → game_accounts league ids used on /account */
+const ONBOARDING_TO_ACCOUNT_GAME: Record<OnboardingGameId, "rcml" | "rfcl" | "rbsl"> = {
+  codm: "rcml",
+  freefire: "rfcl",
+  bloodstrike: "rbsl",
+};
 const HQ_INVITE = "https://discord.gg/85qGDxyCdp";
 
 export type OnboardingInitialData = {
@@ -291,6 +298,23 @@ export default function OnboardingClient({
         { onConflict: "profile_id,game" }
       );
       if (error) throw error;
+
+      // Also register as a game account so it appears under Game Accounts on /account
+      const accountGame = ONBOARDING_TO_ACCOUNT_GAME[game];
+      const { error: accountError } = await supabase.from("game_accounts").upsert(
+        {
+          profile_id: initial.userId,
+          game: accountGame,
+          ign: draft.ign.trim(),
+          game_uid: draft.player_uid.trim() || null,
+        },
+        { onConflict: "profile_id,game" }
+      );
+      if (accountError) {
+        console.warn("Could not sync game account from onboarding:", accountError);
+        // Non-fatal: profile was saved; account list can be fixed later
+      }
+
       setSavedGames((current) => new Set(current).add(game));
       showNotice(`${meta.short} profile saved.`, "success");
     } catch (error) {
@@ -390,7 +414,12 @@ export default function OnboardingClient({
     setBusy(true);
     try {
       await saveProfile({ onboarding_completed: true, onboarding_step: 6 });
-      router.push("/account");
+      // Public player profile: /player/[playerId]
+      const dest =
+        playerId && playerId.trim()
+          ? `/player/${encodeURIComponent(playerId.trim())}`
+          : `/player/${encodeURIComponent(initial.userId)}`;
+      router.push(dest);
       router.refresh();
     } catch (error) {
       showNotice(

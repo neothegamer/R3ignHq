@@ -114,6 +114,53 @@ export default async function AccountPage() {
     displayName: row.muted_profile?.display_name ?? null,
   }));
 
+
+  // Backfill game_accounts from onboarding game_profiles (id mapping)
+  const ONBOARDING_TO_ACCOUNT: Record<string, string> = {
+    codm: "rcml",
+    freefire: "rfcl",
+    bloodstrike: "rbsl",
+    rcml: "rcml",
+    rfcl: "rfcl",
+    rbsl: "rbsl",
+  };
+
+  let gameAccounts = (gameAccountsResult.data ?? []) as GameAccount[];
+  const existingGames = new Set(gameAccounts.map((a) => a.game));
+  const profiles = gameProfilesResult.data ?? [];
+  const toInsert: { profile_id: string; game: string; ign: string; game_uid: string | null }[] = [];
+
+  for (const gp of profiles) {
+    const accountGame = ONBOARDING_TO_ACCOUNT[String(gp.game).toLowerCase()];
+    if (!accountGame || existingGames.has(accountGame)) continue;
+    const ign = (gp.ign ?? "").trim();
+    if (!ign) continue;
+    toInsert.push({
+      profile_id: user.id,
+      game: accountGame,
+      ign,
+      game_uid: (gp.player_uid ?? "").trim() || null,
+    });
+  }
+
+  if (toInsert.length > 0) {
+    const { data: inserted, error: insertError } = await supabase
+      .from("game_accounts")
+      .upsert(toInsert, { onConflict: "profile_id,game" })
+      .select(
+        "id,game,ign,game_uid,verification_status,verification_code,updated_at"
+      );
+    if (insertError) {
+      console.warn("Could not backfill game_accounts from onboarding:", insertError);
+    } else if (inserted?.length) {
+      const byGame = new Map(gameAccounts.map((a) => [a.game, a]));
+      for (const row of inserted) byGame.set(row.game, row as GameAccount);
+      gameAccounts = Array.from(byGame.values()).sort((a, b) =>
+        a.game.localeCompare(b.game)
+      );
+    }
+  }
+
   const discordIdentity = user.identities?.find(
     (identity) => identity.provider.toLowerCase() === "discord"
   );
@@ -122,7 +169,7 @@ export default async function AccountPage() {
     <ProfileClient
       profile={profileResult.data as AccountProfile}
       email={user.email ?? ""}
-      gameAccounts={(gameAccountsResult.data ?? []) as GameAccount[]}
+      gameAccounts={gameAccounts}
       gameProfiles={(gameProfilesResult.data ?? []) as GameProfile[]}
       discordIdentity={
         discordIdentity
