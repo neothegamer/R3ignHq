@@ -13,6 +13,8 @@ import {
 type Props = {
   /** Server-rendered account area — avoids client flash */
   accountSlot: ReactNode;
+  /** Account links shown inside the mobile navigation only */
+  mobileAccountSlot: ReactNode;
 };
 
 const NAV_GROUPS = [
@@ -47,7 +49,7 @@ const NAV_GROUPS = [
   },
 ] as const;
 
-export default function Header({ accountSlot }: Props) {
+export default function Header({ accountSlot, mobileAccountSlot }: Props) {
   const pathname = usePathname();
   const navRef = useRef<HTMLElement>(null);
   const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -187,6 +189,7 @@ export default function Header({ accountSlot }: Props) {
               handleMenuKeyDown(event, openDropdown)
             }
           >
+            {mobileAccountSlot}
             {NAV_GROUPS.map((group, index) => {
               const active =
                 isActive(group.href) ||

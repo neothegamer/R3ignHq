@@ -1,0 +1,327 @@
+diff --git a/app/globals.css b/app/globals.css
+index e801dc7..228c3cd 100644
+--- a/app/globals.css
++++ b/app/globals.css
+@@ -325,6 +325,7 @@ section{ padding-block: clamp(3rem, 7vw, 6rem); }
+   text-transform:uppercase;
+ }
+ .nav-links-signin{ display:none; } /* shown only in the mobile menu, see max-width:1100px */
++.mobile-account-nav-item{ display:none; }
+ .nav-group-heading{
+   display:flex;
+   align-items:center;
+@@ -457,6 +458,13 @@ section{ padding-block: clamp(3rem, 7vw, 6rem); }
+     z-index:49;
+   }
+   .nav-links.is-open{ opacity:1; visibility:visible; transform:translateY(0); }
++  .mobile-account-nav-item{
++    display:block; width:100%; margin:0 0 0.5rem; padding:0 0 0.5rem;
++    border-bottom:1px solid var(--line);
++  }
++  .nav-account-menu-toggle{ display:none; }
++  .nav-account-menu{ display:none !important; }
++  a.nav-profile-link{ pointer-events:none; }
+   .nav-links a{
+     display:block; padding-block:0.9rem; border-bottom:1px solid var(--line-soft); width:100%;
+   }
+@@ -5224,4 +5232,4 @@ body:has(.msg-layout) .site-footer {
+   .profile-row-actions .btn { flex: 1 1 0; justify-content: center; min-height: 42px; }
+   .profile-game-account, .profile-team-row, .profile-connection-row { padding: 0.85rem; }
+ }
+-}
+\ No newline at end of file
++}
+diff --git a/app/layout.tsx b/app/layout.tsx
+index 8d11552..ca85aaf 100644
+--- a/app/layout.tsx
++++ b/app/layout.tsx
+@@ -48,7 +48,10 @@ export default function RootLayout({
+           <a href="#main-content" className="skip-link">
+             Skip to main content
+           </a>
+-          <Header accountSlot={<NavAccount />} />
++          <Header
++            accountSlot={<NavAccount />}
++            mobileAccountSlot={<NavAccount mobileMenu />}
++          />
+           {children}
+         </Providers>
+       </body>
+diff --git a/components/Header.tsx b/components/Header.tsx
+index 2dc0eb5..2352917 100644
+--- a/components/Header.tsx
++++ b/components/Header.tsx
+@@ -13,6 +13,8 @@ import {
+ type Props = {
+   /** Server-rendered account area — avoids client flash */
+   accountSlot: ReactNode;
++  /** Account links shown inside the mobile navigation only */
++  mobileAccountSlot: ReactNode;
+ };
+ 
+ const NAV_GROUPS = [
+@@ -46,8 +48,9 @@ const NAV_GROUPS = [
+     children: [{ label: "Player Market", href: "/player-market" }],
+   },
+ ] as const;
++const PROFILE_GROUP_INDEX = NAV_GROUPS.length;
+ 
+-export default function Header({ accountSlot }: Props) {
++export default function Header({ accountSlot, mobileAccountSlot }: Props) {
+   const pathname = usePathname();
+   const navRef = useRef<HTMLElement>(null);
+   const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+@@ -187,6 +190,60 @@ export default function Header({ accountSlot }: Props) {
+               handleMenuKeyDown(event, openDropdown)
+             }
+           >
++            <li
++              className={`nav-group mobile-account-nav-item${
++                openDropdown === PROFILE_GROUP_INDEX ? " is-open" : ""
++              }`}
++              onBlur={(event) => {
++                if (!event.currentTarget.contains(event.relatedTarget as Node)) {
++                  setOpenDropdown(null);
++                }
++              }}
++            >
++              <div className="nav-group-heading">
++                <Link
++                  href="/account"
++                  aria-current={isActive("/account") ? "page" : undefined}
++                  className={isActive("/account") ? "is-section-active" : undefined}
++                  onClick={() => {
++                    setOpenDropdown(null);
++                    setMenuOpen(false);
++                  }}
++                >
++                  Profile
++                </Link>
++                <button
++                  type="button"
++                  className="dropdown-toggle"
++                  aria-label="Profile menu"
++                  aria-haspopup="menu"
++                  aria-expanded={openDropdown === PROFILE_GROUP_INDEX}
++                  aria-controls={`nav-menu-${PROFILE_GROUP_INDEX}`}
++                  onClick={() => {
++                    clearHoverTimer();
++                    setOpenDropdown(
++                      openDropdown === PROFILE_GROUP_INDEX
++                        ? null
++                        : PROFILE_GROUP_INDEX
++                    );
++                  }}
++                >
++                  <span aria-hidden="true" />
++                </button>
++              </div>
++              <ul
++                className={`dropdown-menu${
++                  openDropdown === PROFILE_GROUP_INDEX ? " is-open" : ""
++                }`}
++                id={`nav-menu-${PROFILE_GROUP_INDEX}`}
++                role="menu"
++                aria-label="Profile links"
++                data-menu-index={PROFILE_GROUP_INDEX}
++                hidden={openDropdown !== PROFILE_GROUP_INDEX}
++              >
++                {mobileAccountSlot}
++              </ul>
++            </li>
+             {NAV_GROUPS.map((group, index) => {
+               const active =
+                 isActive(group.href) ||
+diff --git a/components/NavAccount.tsx b/components/NavAccount.tsx
+index e5ec63c..21a7a7f 100644
+--- a/components/NavAccount.tsx
++++ b/components/NavAccount.tsx
+@@ -1,12 +1,22 @@
+ import { getServerAuth } from "@/lib/supabase/auth";
+ import NavAccountClient from "./NavAccountClient";
+ 
++type Props = {
++  mobileMenu?: boolean;
++};
++
+ /** Server component — session read on the server, no client redirect flash. */
+-export default async function NavAccount() {
++export default async function NavAccount({ mobileMenu = false }: Props) {
+   const { supabase, user } = await getServerAuth();
+ 
+   if (!user) {
+-    return <NavAccountClient initial={null} avatarUrl={null} />;
++    return (
++      <NavAccountClient
++        initial={null}
++        avatarUrl={null}
++        mobileMenu={mobileMenu}
++      />
++    );
+   }
+ 
+   const displayName =
+@@ -35,6 +45,7 @@ export default async function NavAccount() {
+       profileHref={
+         profileId ? `/player/${encodeURIComponent(profileId)}` : "/account"
+       }
++      mobileMenu={mobileMenu}
+     />
+   );
+ }
+diff --git a/components/NavAccountClient.tsx b/components/NavAccountClient.tsx
+index ba8c6b4..1f2fd6e 100644
+--- a/components/NavAccountClient.tsx
++++ b/components/NavAccountClient.tsx
+@@ -8,12 +8,13 @@ type Props = {
+   initial: string | null;
+   avatarUrl: string | null;
+   profileHref?: string;
++  mobileMenu?: boolean;
+ };
+-
+ export default function NavAccountClient({
+   initial,
+   avatarUrl,
+   profileHref = "/account",
++  mobileMenu = false,
+ }: Props) {
+   const pathname = usePathname();
+   const onMessages = pathname.startsWith("/messages");
+@@ -25,6 +26,37 @@ export default function NavAccountClient({
+   const menuRef = useRef<HTMLDivElement>(null);
+   const menuButtonRef = useRef<HTMLButtonElement>(null);
+   const authenticated = initial !== null;
++  const [mobileViewport, setMobileViewport] = useState(false);
++  useEffect(() => {
++    const media = window.matchMedia("(max-width: 1100px)");
++    const update = () => setMobileViewport(media.matches);
++    update();
++    media.addEventListener("change", update);
++    return () => media.removeEventListener("change", update);
++  }, []);
++
++  const avatar = (
++    <span className="nav-profile-avatar" aria-hidden="true">
++      {avatarUrl ? (
++        <img src={avatarUrl} alt="" />
++      ) : initial ? (
++        initial
++      ) : (
++        <svg
++          viewBox="0 0 24 24"
++          fill="none"
++          stroke="currentColor"
++          strokeWidth="1.8"
++          strokeLinecap="round"
++          strokeLinejoin="round"
++          focusable="false"
++        >
++          <circle cx="12" cy="8" r="4" />
++          <path d="M4 21a8 8 0 0 1 16 0" />
++        </svg>
++      )}
++    </span>
++  );
+ 
+   useEffect(() => {
+     if (!menuOpen) return;
+@@ -53,39 +85,69 @@ export default function NavAccountClient({
+     };
+   }, [menuOpen]);
+ 
++  if (mobileMenu) {
++    return authenticated ? (
++      <>
++        <li role="none">
++          <Link href={profileHref} role="menuitem" aria-current={onProfile ? "page" : undefined}>
++            My profile
++          </Link>
++        </li>
++        <li role="none">
++          <Link href="/messages" role="menuitem" aria-current={onMessages ? "page" : undefined}>
++            Messages
++          </Link>
++        </li>
++        <li role="none">
++          <Link href="/account" role="menuitem" aria-current={onAccount ? "page" : undefined}>
++            Account settings
++          </Link>
++        </li>
++        <li role="none">
++          <Link href="/auth/signout" role="menuitem">
++            Sign out
++          </Link>
++        </li>
++      </>
++    ) : (
++      <>
++        <li role="none">
++          <Link href="/signin" role="menuitem">
++            Sign in
++          </Link>
++        </li>
++        <li role="none">
++          <Link href="/signup" role="menuitem">
++            Create account
++          </Link>
++        </li>
++      </>
++    );
++  }
++
+   return (
+     <span id="nav-account" className="nav-account">
+       <div className="nav-account-menu-wrap" ref={menuRef}>
+-        <Link
+-          href={authenticated ? profileHref : "/account"}
+-          className="nav-profile-link"
+-          aria-label={
+-            authenticated ? "View my public profile" : "Sign in or open my account"
+-          }
+-          aria-current={onProfile ? "page" : onAccount ? "page" : undefined}
+-          onClick={() => setMenuOpen(false)}
+-        >
+-          <span className="nav-profile-avatar" aria-hidden="true">
+-            {avatarUrl ? (
+-              <img src={avatarUrl} alt="" />
+-            ) : initial ? (
+-              initial
+-            ) : (
+-              <svg
+-                viewBox="0 0 24 24"
+-                fill="none"
+-                stroke="currentColor"
+-                strokeWidth="1.8"
+-                strokeLinecap="round"
+-                strokeLinejoin="round"
+-                focusable="false"
+-              >
+-                <circle cx="12" cy="8" r="4" />
+-                <path d="M4 21a8 8 0 0 1 16 0" />
+-              </svg>
+-            )}
++        {mobileViewport ? (
++          <span
++            className="nav-profile-link nav-profile-link-static"
++            aria-hidden="true"
++          >
++            {avatar}
+           </span>
+-        </Link>
++        ) : (
++          <Link
++            href={authenticated ? profileHref : "/account"}
++            className="nav-profile-link"
++            aria-label={
++              authenticated ? "View my public profile" : "Sign in or open my account"
++            }
++            aria-current={onProfile ? "page" : onAccount ? "page" : undefined}
++            onClick={() => setMenuOpen(false)}
++          >
++            {avatar}
++          </Link>
++        )}
+         {authenticated && (
+           <>
+             <button

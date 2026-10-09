@@ -2,20 +2,24 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from "react";
 
 type Props = {
   initial: string | null;
   avatarUrl: string | null;
   profileHref?: string;
-  unreadCount: number;
+  mobileMenu?: boolean;
 };
-
 export default function NavAccountClient({
   initial,
   avatarUrl,
   profileHref = "/account",
-  unreadCount,
+  mobileMenu = false,
 }: Props) {
   const pathname = usePathname();
   const onMessages = pathname.startsWith("/messages");
@@ -26,7 +30,72 @@ export default function NavAccountClient({
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const mobileProfileRef = useRef<HTMLLIElement>(null);
+  const mobileProfileButtonRef = useRef<HTMLButtonElement>(null);
   const authenticated = initial !== null;
+  const [mobileProfileOpen, setMobileProfileOpen] = useState(false);
+  const [mobileViewport, setMobileViewport] = useState(false);
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 1100px)");
+    const update = () => setMobileViewport(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+
+  useEffect(() => {
+    setMobileProfileOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!mobileMenu || !mobileProfileOpen) return;
+
+    function handlePointerDown(event: PointerEvent) {
+      if (
+        event.target instanceof Node &&
+        !mobileProfileRef.current?.contains(event.target)
+      ) {
+        setMobileProfileOpen(false);
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setMobileProfileOpen(false);
+        mobileProfileButtonRef.current?.focus();
+      }
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [mobileMenu, mobileProfileOpen]);
+
+  const avatar = (
+    <span className="nav-profile-avatar" aria-hidden="true">
+      {avatarUrl ? (
+        <img src={avatarUrl} alt="" />
+      ) : initial ? (
+        initial
+      ) : (
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          focusable="false"
+        >
+          <circle cx="12" cy="8" r="4" />
+          <path d="M4 21a8 8 0 0 1 16 0" />
+        </svg>
+      )}
+    </span>
+  );
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -55,39 +124,140 @@ export default function NavAccountClient({
     };
   }, [menuOpen]);
 
+  if (mobileMenu) {
+    return (
+      <li
+        ref={mobileProfileRef}
+        className={`nav-group mobile-account-nav-item${
+          mobileProfileOpen ? " is-open" : ""
+        }`}
+        onBlur={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget as Node)) {
+            setMobileProfileOpen(false);
+          }
+        }}
+        onKeyDown={(event: ReactKeyboardEvent<HTMLLIElement>) => {
+          if (event.key === "Escape") {
+            event.preventDefault();
+            setMobileProfileOpen(false);
+            mobileProfileButtonRef.current?.focus();
+            return;
+          }
+          if (
+            !mobileProfileOpen ||
+            !["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)
+          ) {
+            return;
+          }
+          const items = Array.from(
+            event.currentTarget.querySelectorAll<HTMLElement>(
+              '#mobile-profile-menu [role="menuitem"]'
+            )
+          );
+          if (!items.length) return;
+          event.preventDefault();
+          if (event.key === "Home") items[0].focus();
+          else if (event.key === "End") items[items.length - 1].focus();
+          else {
+            const current = items.indexOf(event.target as HTMLElement);
+            const offset = event.key === "ArrowDown" ? 1 : -1;
+            const next =
+              current < 0
+                ? event.key === "ArrowDown"
+                  ? 0
+                  : items.length - 1
+                : (current + offset + items.length) % items.length;
+            items[next].focus();
+          }
+        }}
+      >
+        <div className="nav-group-heading">
+          <Link
+            href={authenticated ? profileHref : "/account"}
+            aria-current={onProfile || onAccount ? "page" : undefined}
+            className={onProfile || onAccount ? "is-section-active" : undefined}
+            onClick={() => setMobileProfileOpen(false)}
+          >
+            Profile
+          </Link>
+          {authenticated && (
+            <button
+              ref={mobileProfileButtonRef}
+              type="button"
+              className="dropdown-toggle"
+              aria-label="Profile menu"
+              aria-haspopup="menu"
+              aria-expanded={mobileProfileOpen}
+              aria-controls="mobile-profile-menu"
+              onClick={() => setMobileProfileOpen((open) => !open)}
+            >
+              <span aria-hidden="true" />
+            </button>
+          )}
+        </div>
+        {authenticated && (
+          <>
+            <ul
+              className={`dropdown-menu${mobileProfileOpen ? " is-open" : ""}`}
+              id="mobile-profile-menu"
+              role="menu"
+              aria-label="Profile links"
+              hidden={!mobileProfileOpen}
+            >
+              <li role="none">
+                <Link
+                  href="/messages"
+                  role="menuitem"
+                  aria-current={onMessages ? "page" : undefined}
+                >
+                  Messages
+                </Link>
+              </li>
+              <li role="none">
+                <Link
+                  href="/account"
+                  role="menuitem"
+                  aria-current={onAccount ? "page" : undefined}
+                >
+                  Account settings
+                </Link>
+              </li>
+            </ul>
+            <Link
+              href="/auth/signout"
+              className="btn btn-primary mobile-profile-signout"
+            >
+              Sign out
+            </Link>
+          </>
+        )}
+      </li>
+    );
+  }
+
   return (
     <span id="nav-account" className="nav-account">
       <div className="nav-account-menu-wrap" ref={menuRef}>
-        <Link
-          href={authenticated ? profileHref : "/account"}
-          className="nav-profile-link"
-          aria-label={
-            authenticated ? "View my public profile" : "Sign in or open my account"
-          }
-          aria-current={onProfile ? "page" : onAccount ? "page" : undefined}
-          onClick={() => setMenuOpen(false)}
-        >
-          <span className="nav-profile-avatar" aria-hidden="true">
-            {avatarUrl ? (
-              <img src={avatarUrl} alt="" />
-            ) : initial ? (
-              initial
-            ) : (
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                focusable="false"
-              >
-                <circle cx="12" cy="8" r="4" />
-                <path d="M4 21a8 8 0 0 1 16 0" />
-              </svg>
-            )}
+        {mobileViewport ? (
+          <span
+            className="nav-profile-link nav-profile-link-static"
+            aria-hidden="true"
+          >
+            {avatar}
           </span>
-        </Link>
+        ) : (
+          <Link
+            href={authenticated ? profileHref : "/account"}
+            className="nav-profile-link"
+            aria-label={
+              authenticated ? "View my public profile" : "Sign in or open my account"
+            }
+            aria-current={onProfile ? "page" : onAccount ? "page" : undefined}
+            onClick={() => setMenuOpen(false)}
+          >
+            {avatar}
+          </Link>
+        )}
         {authenticated && (
           <>
             <button
@@ -123,6 +293,14 @@ export default function NavAccountClient({
                   My profile
                 </Link>
                 <Link
+                  href="/messages"
+                  role="menuitem"
+                  aria-current={onMessages ? "page" : undefined}
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Messages
+                </Link>
+                <Link
                   href="/account"
                   role="menuitem"
                   aria-current={onAccount ? "page" : undefined}
@@ -142,37 +320,6 @@ export default function NavAccountClient({
           </>
         )}
       </div>
-      <Link
-        href="/messages"
-        className="nav-icon-link nav-message-link"
-        aria-label={
-          unreadCount > 0
-            ? `Open messages, ${unreadCount} unread`
-            : "Open messages"
-        }
-        aria-current={onMessages ? "page" : undefined}
-      >
-        <span className="nav-message-icon" aria-hidden="true">
-          <svg
-            viewBox="0 0 24 24"
-            width="22"
-            height="22"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            focusable="false"
-          >
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-            <path d="M8 8h8" />
-            <path d="M8 12h5" />
-          </svg>
-        </span>
-        {unreadCount > 0 && (
-          <span className="nav-badge-dot" aria-hidden="true" />
-        )}
-      </Link>
     </span>
   );
 }

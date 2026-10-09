@@ -48,7 +48,10 @@ export default function RootLayout({
           <a href="#main-content" className="skip-link">
             Skip to main content
           </a>
-          <Header accountSlot={<NavAccount />} />
+          <Header
+            accountSlot={<NavAccount />}
+            mobileAccountSlot={<NavAccount mobileMenu />}
+          />
           {children}
         </Providers>
       </body>
