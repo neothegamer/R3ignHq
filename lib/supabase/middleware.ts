@@ -37,6 +37,7 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const path = request.nextUrl.pathname;
+
   const protectedPaths = ["/messages", "/player-market"];
   const isProtected = protectedPaths.some(
     (p) => path === p || path.startsWith(p + "/")
@@ -47,6 +48,34 @@ export async function updateSession(request: NextRequest) {
     url.pathname = "/signin";
     url.searchParams.set("redirect", path);
     return NextResponse.redirect(url);
+  }
+
+  // Onboarding gate: newly created accounts must finish setup first.
+  // /account stays reachable so the "Complete your setup" banner can resume.
+  const ONBOARDING_BYPASS = [
+    "/onboarding",
+    "/auth",
+    "/signin",
+    "/signup",
+    "/account",
+  ];
+  const bypassesOnboardingGate = ONBOARDING_BYPASS.some(
+    (p) => path === p || path.startsWith(p + "/")
+  );
+
+  if (user && !bypassesOnboardingGate) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("onboarding_completed")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (profile?.onboarding_completed === false) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/onboarding";
+      url.search = "";
+      return NextResponse.redirect(url);
+    }
   }
 
   return supabaseResponse;

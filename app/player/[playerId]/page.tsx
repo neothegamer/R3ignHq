@@ -5,7 +5,9 @@ import PublicProfileView from "@/components/profile/PublicProfileView";
 import type {
   AccountProfile,
   PublicAward,
+  PublicConnection,
   PublicGameAccount,
+  PublicGameProfile,
   PublicPlayerListing,
   TeamMembership,
 } from "@/components/profile/account-types";
@@ -52,14 +54,20 @@ export default async function PlayerProfilePage({ params }: PageProps) {
   const [
     { data: viewerData, error: viewerError },
     { data: gameAccounts, error: gameAccountsError },
+    { data: gameProfiles, error: gameProfilesError },
     { data: memberships, error: membershipsError },
     { data: listings, error: listingsError },
     { data: awards, error: awardsError },
+    { data: connections, error: connectionsError },
   ] = await Promise.all([
     supabase.auth.getUser(),
     supabase
       .from("game_accounts")
       .select("game, ign, game_uid, verification_status")
+      .eq("profile_id", profile.id),
+    supabase
+      .from("game_profiles")
+      .select("game, ign, player_uid, team_clan, role, experience")
       .eq("profile_id", profile.id),
     supabase
       .from("organization_members")
@@ -77,6 +85,10 @@ export default async function PlayerProfilePage({ params }: PageProps) {
       .select("award_label, context, season, created_at")
       .eq("profile_id", profile.id)
       .order("created_at", { ascending: false }),
+    supabase
+      .from("public_connections")
+      .select("provider, username")
+      .eq("profile_id", profile.id),
   ]);
 
   if (viewerError && viewerError.name !== "AuthSessionMissingError") {
@@ -84,6 +96,9 @@ export default async function PlayerProfilePage({ params }: PageProps) {
   }
   if (gameAccountsError) {
     console.error("Could not load public game accounts:", gameAccountsError);
+  }
+  if (gameProfilesError) {
+    console.error("Could not load public game profiles:", gameProfilesError);
   }
   if (membershipsError) {
     console.error("Could not load public team memberships:", membershipsError);
@@ -93,6 +108,9 @@ export default async function PlayerProfilePage({ params }: PageProps) {
   }
   if (awardsError) {
     console.error("Could not load public profile awards:", awardsError);
+  }
+  if (connectionsError) {
+    console.error("Could not load public connections:", connectionsError);
   }
 
   const publicProfile: AccountProfile = {
@@ -134,9 +152,11 @@ export default async function PlayerProfilePage({ params }: PageProps) {
       profile={publicProfile}
       isOwner={viewerData.user?.id === profile.id}
       gameAccounts={(gameAccounts ?? []) as PublicGameAccount[]}
+      gameProfiles={(gameProfiles ?? []) as PublicGameProfile[]}
       memberships={publicMemberships}
       listings={(listings ?? []) as PublicPlayerListing[]}
       awards={(awards ?? []) as PublicAward[]}
+      connections={(connections ?? []) as PublicConnection[]}
     />
   );
 }

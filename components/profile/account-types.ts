@@ -39,6 +39,16 @@ export type GameProfile = Pick<
   "game" | "ign" | "player_uid" | "team_clan" | "role"
 >;
 
+export type PublicGameProfile = Pick<
+  Tables["game_profiles"]["Row"],
+  "game" | "ign" | "player_uid" | "team_clan" | "role" | "experience"
+>;
+
+export type PublicConnection = {
+  provider: string;
+  username: string | null;
+};
+
 export type TeamMembership = {
   id: string;
   organizationId: string;

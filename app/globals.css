@@ -4530,3 +4530,415 @@ body:has(.msg-layout) .site-footer {
     bottom: 1rem;
   }
 }
+/* Public profile: empty states + competitive facts */
+.public-profile-empty {
+  margin: 0;
+  padding: 1rem 1.25rem;
+  border: 1px dashed rgba(255, 255, 255, 0.14);
+  color: var(--muted, #8b949c);
+  font-size: 0.95rem;
+}
+.public-profile-empty a {
+  color: inherit;
+  text-decoration: underline;
+}
+.public-profile-facts {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0.9rem 0 0;
+}
+.public-profile-facts div {
+  display: flex;
+  gap: 0.75rem;
+}
+.public-profile-facts dt {
+  min-width: 7.5rem;
+  color: var(--muted, #8b949c);
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.public-profile-facts dd {
+  margin: 0;
+  font-family: var(--f-mono, monospace);
+  font-size: 0.9rem;
+}
+
+/* Onboarding wizard */
+.ob-wrap {
+  width: min(100%, 720px);
+  margin-inline: auto;
+  padding: clamp(2rem, 5vw, 3.5rem) clamp(1.25rem, 4vw, 2.5rem);
+}
+.ob-header {
+  margin-bottom: 2rem;
+}
+.ob-header .eyebrow {
+  margin-bottom: 0.75rem;
+}
+.ob-header h1 {
+  margin-bottom: 0.5rem;
+  font-size: clamp(1.75rem, 4vw, 2.4rem);
+}
+.ob-header .lede {
+  max-width: 48ch;
+  color: var(--paper-dim);
+  font-size: 0.95rem;
+}
+.ob-progress {
+  display: flex;
+  align-items: center;
+  margin-bottom: 2.25rem;
+}
+.ob-progress-segment {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 12px;
+  align-items: center;
+}
+.ob-progress-segment:first-child {
+  flex: 0 0 auto;
+}
+.ob-step {
+  display: flex;
+  width: 2.1rem;
+  height: 2.1rem;
+  flex: 0 0 2.1rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--steel);
+  font-family: var(--f-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
+}
+.ob-step.is-current {
+  border-color: var(--signal);
+  background: var(--signal-dim);
+  color: var(--paper);
+  box-shadow: 0 0 0 1px var(--signal);
+}
+.ob-step.is-done {
+  border-color: var(--amber);
+  background: var(--amber-dim);
+  color: var(--amber);
+}
+.ob-step-line {
+  min-width: 8px;
+  max-width: 40px;
+  height: 1px;
+  flex: 1 1 12px;
+  background: var(--line);
+  margin-inline: 0.4rem;
+}
+.ob-notice {
+  margin: 0 0 1.25rem;
+  padding: 0.85rem 1.1rem;
+  border: 1px solid var(--line);
+  font-size: 0.92rem;
+}
+.ob-notice.is-error {
+  border-color: rgb(210 69 47 / 55%);
+  color: #f0a294;
+}
+.ob-notice.is-success {
+  border-color: rgb(199 154 61 / 55%);
+  color: var(--amber);
+}
+.ob-panel {
+  padding: clamp(1.25rem, 3vw, 1.75rem);
+  border: 1px solid var(--line);
+  background: var(--panel);
+}
+.ob-panel[hidden] {
+  display: none !important;
+}
+.ob-panel-title {
+  margin-bottom: 0.35rem;
+  font-family: var(--f-display);
+  font-size: 1.15rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.ob-panel-sub {
+  margin-bottom: 1.5rem;
+  color: var(--paper-dim);
+  font-size: 0.9rem;
+}
+.ob-fields {
+  display: grid;
+  gap: 1.1rem;
+}
+.ob-field label,
+.ob-fieldset legend {
+  display: block;
+  margin-bottom: 0.4rem;
+  color: var(--paper-dim);
+  font-family: var(--f-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.ob-field input,
+.ob-field select,
+.ob-field textarea {
+  width: 100%;
+  padding: 0.75em 0.9em;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--f-body);
+  font-size: 0.95rem;
+}
+.ob-field input:focus,
+.ob-field select:focus,
+.ob-field textarea:focus {
+  border-color: var(--amber);
+}
+.ob-field textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+.ob-field .optional {
+  color: var(--steel);
+  font-family: var(--f-body);
+  font-size: 0.85em;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.ob-player-id {
+  display: inline-block;
+  min-width: 12rem;
+  padding: 0.65em 0.9em;
+  border: 1px solid var(--amber);
+  background: var(--amber-dim);
+  color: var(--amber);
+  font-family: var(--f-mono);
+  font-size: 1rem;
+  letter-spacing: 0.12em;
+}
+.ob-games-list,
+.ob-connections-list,
+.ob-game-forms {
+  display: grid;
+  gap: 0.75rem;
+}
+.ob-game-card {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--line);
+  background: var(--ink);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.ob-game-card:hover {
+  border-color: var(--steel);
+}
+.ob-game-card.is-selected {
+  border-color: var(--signal);
+  background: rgb(210 69 47 / 8%);
+  box-shadow: inset 3px 0 0 var(--signal);
+}
+.ob-game-card input {
+  width: 1.1rem;
+  height: 1.1rem;
+  flex: 0 0 auto;
+  accent-color: var(--signal);
+}
+.ob-game-label {
+  font-family: var(--f-display);
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+.ob-game-form {
+  margin: 0;
+  padding: 1.25rem;
+  border: 1px solid var(--line);
+  background: var(--ink);
+}
+.ob-game-form-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.ob-game-form-head h3 {
+  margin: 0;
+  color: var(--manila);
+  font-size: 1rem;
+}
+.ob-game-form .ob-fields {
+  margin-top: 1.1rem;
+}
+.ob-saved-tag {
+  color: var(--amber);
+  font-family: var(--f-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.ob-fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.ob-fieldset legend {
+  padding: 0;
+}
+.ob-radio-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+}
+.ob-radio {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+}
+.ob-radio input {
+  accent-color: var(--signal);
+}
+.ob-form-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+.ob-conn-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.15rem;
+  border: 1px solid var(--line);
+  background: var(--ink);
+}
+.ob-conn-name {
+  font-family: var(--f-display);
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.ob-conn-status.is-connected,
+.ob-hq-status {
+  color: var(--amber);
+  font-family: var(--f-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.ob-hq-box {
+  display: grid;
+  justify-items: start;
+  gap: 1rem;
+  margin: 0;
+  padding: 1.5rem;
+  border: 1px solid var(--line);
+  background: var(--ink);
+}
+.ob-hq-box p {
+  max-width: 48ch;
+  margin: 0;
+  color: var(--paper-dim);
+}
+.ob-hq-status {
+  margin-top: 0.25rem;
+}
+.ob-completion-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+.ob-completion-head h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+.ob-percent {
+  color: var(--signal);
+  font-family: var(--f-mono);
+  font-size: 1.1rem;
+  letter-spacing: 0.04em;
+}
+.ob-percent span {
+  color: var(--amber);
+}
+.ob-checklist {
+  display: grid;
+  margin: 0 0 1.75rem;
+  padding: 0;
+  border: 1px solid var(--line);
+  background: var(--ink);
+  list-style: none;
+}
+.ob-check-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1.1rem;
+  border-bottom: 1px solid var(--line-soft);
+  font-size: 0.92rem;
+}
+.ob-check-item:last-child {
+  border-bottom: 0;
+}
+.ob-check-icon {
+  width: 1.25rem;
+  flex: 0 0 1.25rem;
+  color: var(--steel);
+  font-family: var(--f-mono);
+  text-align: center;
+}
+.ob-check-item.is-done .ob-check-icon {
+  color: var(--amber);
+}
+.ob-check-item.is-done {
+  color: var(--amber);
+}
+.ob-check-item.is-optional {
+  color: var(--steel);
+}
+.ob-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.75rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--line);
+}
+.ob-actions .btn {
+  min-width: 8rem;
+  justify-content: center;
+}
+.ob-empty {
+  padding: 1.5rem;
+  border: 1px dashed var(--line);
+  color: var(--paper-dim);
+  font-family: var(--f-mono);
+  font-size: 0.85rem;
+  text-align: center;
+}
+@media (max-width: 520px) {
+  .ob-conn-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .ob-actions {
+    flex-direction: column;
+  }
+  .ob-actions .btn {
+    width: 100%;
+  }
+}
