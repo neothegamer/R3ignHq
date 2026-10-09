@@ -5168,4 +5168,60 @@ body:has(.msg-layout) .site-footer {
     width: 100%;
     justify-content: center;
   }
+  /* ===== /account — mobile refinements ===== */
+
+/* Compact identity header: avatar beside the name, not on top */
+@media (max-width: 760px) {
+  .profile-identity-layout {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 1rem;
+    align-items: start;
+  }
+  .profile-identity-avatar { justify-items: center; gap: 0.55rem; }
+  .profile-identity-avatar .avatar-uploader-preview {
+    width: 84px; height: 84px; font-size: 1.6rem;
+  }
+  .profile-identity-avatar .avatar-uploader-actions {
+    flex-direction: column; width: 100%;
+  }
+  .profile-identity-avatar .avatar-uploader-actions .btn {
+    width: 100%; justify-content: center;
+    padding: 0.55em 0.6em; font-size: 0.62rem;
+  }
+  .profile-identity-title p { overflow-wrap: anywhere; }
+}
+@media (max-width: 420px) {
+  .profile-identity-avatar .avatar-uploader-preview {
+    width: 68px; height: 68px; font-size: 1.3rem;
+  }
+}
+
+/* Fix the country flag: controls that contain a flag stay horizontal,
+   everything else keeps stacking */
+@media (max-width: 760px) {
+  .profile-inline-control:has(> .profile-country-flag) {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 0;
+  }
+  .profile-inline-control:has(> .profile-country-flag) > select,
+  .profile-inline-control:has(> .profile-country-flag) > input { min-width: 0; }
+}
+
+/* Stop iOS focus-zoom on fields the earlier block didn't cover */
+@media (max-width: 760px) {
+  .profile-modal input, .profile-modal select, .profile-modal textarea,
+  .profile-game-form-fields input,
+  .profile-inline-form input {
+    font-size: 16px;
+  }
+}
+
+/* Let row action buttons breathe on small screens */
+@media (max-width: 520px) {
+  .profile-row-actions { width: 100%; gap: 0.5rem; }
+  .profile-row-actions .btn { flex: 1 1 0; justify-content: center; min-height: 42px; }
+  .profile-game-account, .profile-team-row, .profile-connection-row { padding: 0.85rem; }
+}
 }
