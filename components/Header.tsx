@@ -15,6 +15,8 @@ type Props = {
   accountSlot: ReactNode;
   /** Account links shown inside the mobile navigation only */
   mobileAccountSlot: ReactNode;
+  /** Sign-out action shown after the mobile navigation groups */
+  mobileSignOutSlot: ReactNode;
 };
 
 const NAV_GROUPS = [
@@ -49,7 +51,11 @@ const NAV_GROUPS = [
   },
 ] as const;
 
-export default function Header({ accountSlot, mobileAccountSlot }: Props) {
+export default function Header({
+  accountSlot,
+  mobileAccountSlot,
+  mobileSignOutSlot,
+}: Props) {
   const pathname = usePathname();
   const navRef = useRef<HTMLElement>(null);
   const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -267,6 +273,7 @@ export default function Header({ accountSlot, mobileAccountSlot }: Props) {
                 </li>
               );
             })}
+            {mobileSignOutSlot}
           </ul>
         </nav>
 

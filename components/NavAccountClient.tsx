@@ -223,12 +223,6 @@ export default function NavAccountClient({
                 </Link>
               </li>
             </ul>
-            <Link
-              href="/auth/signout"
-              className="btn btn-primary mobile-profile-signout"
-            >
-              Sign out
-            </Link>
           </>
         )}
       </li>

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import Header from "@/components/Header";
 import NavAccount from "@/components/NavAccount";
+import MobileSignOut from "@/components/MobileSignOut";
 import Providers from "@/components/Providers";
 
 export const metadata: Metadata = {
@@ -51,6 +52,7 @@ export default function RootLayout({
           <Header
             accountSlot={<NavAccount />}
             mobileAccountSlot={<NavAccount mobileMenu />}
+            mobileSignOutSlot={<MobileSignOut />}
           />
           {children}
         </Providers>
