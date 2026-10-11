@@ -51,6 +51,7 @@ export default function MyTeamsSection({
   const [savingId, setSavingId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+
   const activeMemberships = memberships.filter(
     (membership) => membership.status === "active"
   );
@@ -98,12 +99,90 @@ export default function MyTeamsSection({
     }
   }
 
+  async function acceptInvitation(invitation: TeamMembership) {
+    if (savingId) return;
+
+    const previous = memberships;
+    setSavingId(invitation.id);
+    setMemberships((current) =>
+      current.map((row) =>
+        row.id === invitation.id ? { ...row, status: "active" } : row
+      )
+    );
+    setError("");
+    setSuccess("");
+
+    try {
+      const { error: updateError } = await supabase
+        .from("organization_members")
+        .update({ status: "active" })
+        .eq("id", invitation.id)
+        .eq("profile_id", profileId)
+        .eq("status", "invited");
+      if (updateError) throw updateError;
+      setSuccess(
+        `You joined ${invitation.organizationName ?? "the team"}.`
+      );
+    } catch (updateError: unknown) {
+      setMemberships(previous);
+      setError(
+        updateError instanceof Error
+          ? updateError.message
+          : "Could not accept this invitation."
+      );
+    } finally {
+      setSavingId(null);
+    }
+  }
+
+  async function declineInvitation(invitation: TeamMembership) {
+    const teamName = invitation.organizationName ?? "this organization";
+    const confirmed = await confirm({
+      title: "Decline invitation",
+      message: `Decline the invitation to join ${teamName}?`,
+      confirmLabel: "Decline",
+      variant: "danger",
+    });
+    if (!confirmed || savingId) return;
+
+    const previous = memberships;
+    setSavingId(invitation.id);
+    setMemberships((current) =>
+      current.map((row) =>
+        row.id === invitation.id ? { ...row, status: "declined" } : row
+      )
+    );
+    setError("");
+    setSuccess("");
+
+    try {
+      const { error: updateError } = await supabase
+        .from("organization_members")
+        .update({ status: "declined" })
+        .eq("id", invitation.id)
+        .eq("profile_id", profileId)
+        .eq("status", "invited");
+      if (updateError) throw updateError;
+      setSuccess("Invitation declined.");
+    } catch (updateError: unknown) {
+      setMemberships(previous);
+      setError(
+        updateError instanceof Error
+          ? updateError.message
+          : "Could not decline this invitation."
+      );
+    } finally {
+      setSavingId(null);
+    }
+  }
+
   return (
     <ProfileSection
       icon={mode === "public" ? "♧" : undefined}
       title="My teams"
     >
       <SectionLoadError message={loadError} />
+
       {activeMemberships.length > 0 && (
         <div className="profile-team-list">
           {activeMemberships.map((membership) => {
@@ -161,15 +240,29 @@ export default function MyTeamsSection({
                   {invitation.inviterName
                     ? `Invited by ${invitation.inviterName}`
                     : "Invitation pending"}
+                  {invitation.role ? ` · ${invitation.role}` : ""}
                 </span>
               </div>
-              <span className="profile-status-badge is-pending">Invited</span>
+              <div className="profile-row-actions">
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => acceptInvitation(invitation)}
+                  disabled={savingId === invitation.id}
+                >
+                  {savingId === invitation.id ? "Accepting…" : "Accept"}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost profile-danger-action"
+                  onClick={() => declineInvitation(invitation)}
+                  disabled={savingId === invitation.id}
+                >
+                  {savingId === invitation.id ? "…" : "Decline"}
+                </button>
+              </div>
             </article>
           ))}
-          <p className="profile-inline-note">
-            Invitations are read-only for now. Current roster access rules do
-            not allow invitees to accept or decline their own invitation.
-          </p>
         </div>
       )}
 
@@ -177,20 +270,23 @@ export default function MyTeamsSection({
         !activeMemberships.length &&
         !invitations.length &&
         !loadError && (
-        <div className="profile-empty-state">
-          <p>
-            You&apos;re not in any teams yet — join one via the player market or
-            register with an organization.
-          </p>
-          <p className="profile-inline-note">
-            Pending invitations may not be visible until roster access rules
-            allow invitees to view them.
-          </p>
-        </div>
+          <div className="profile-empty-state">
+            <p>
+              You&apos;re not in any teams yet — join one via the player market
+              or register with an organization.
+            </p>
+          </div>
+        )}
+
+      {error && (
+        <p className="profile-inline-error" role="alert">
+          {error}
+        </p>
       )}
-      {error && <p className="profile-inline-error" role="alert">{error}</p>}
       {success && (
-        <p className="profile-inline-success" role="status">{success}</p>
+        <p className="profile-inline-success" role="status">
+          {success}
+        </p>
       )}
     </ProfileSection>
   );

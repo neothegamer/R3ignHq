@@ -11,6 +11,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
 :root{
+  --page-grid-gap: 24px;
+  --page-card-padding: clamp(1.5rem, 4vw, 2.75rem);
   /* --- color tokens ---
      "Ops Dossier": a league run out of a briefing room. The base stays a
      near-black field-ops dark, but every accent reads like something you'd
@@ -3823,6 +3825,119 @@ body:has(.msg-layout) .site-footer {
   margin-top: 0.75rem;
 }
 
+
+
+/* ==========================================================================
+   ORG / DETAIL PAGE GRID
+   Cards in the same row MUST share top and bottom edges.
+   Never stack two independent columns. Use grid-template-areas only.
+   ========================================================================== */
+:root {
+  --page-grid-gap: 24px;
+}
+.org-profile-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  grid-template-areas:
+    "roster identity"
+    "record socials"
+    "actions actions";
+  gap: var(--page-grid-gap, 24px);
+  align-items: stretch;
+}
+.org-profile-grid > .org-card-roster   { grid-area: roster; }
+.org-profile-grid > .org-card-identity { grid-area: identity; }
+.org-profile-grid > .org-card-record   { grid-area: record; }
+.org-profile-grid > .org-card-socials  { grid-area: socials; }
+.org-profile-grid > .org-profile-actions { grid-area: actions; }
+
+.org-profile-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  box-sizing: border-box;
+  margin: 0; /* kill any mt-lg leftovers */
+}
+.org-identity-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1rem;
+}
+.org-socials-list {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  list-style: none;
+  padding: 0;
+}
+.org-socials-list a { color: var(--paper); }
+.org-socials-empty {
+  color: var(--steel);
+  font-size: 0.85rem;
+}
+.org-profile-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--page-grid-gap, 24px);
+  margin: 0;
+  align-items: stretch;
+}
+.org-profile-actions .btn {
+  width: 100%;
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .org-profile-grid {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "roster"
+      "identity"
+      "record"
+      "socials"
+      "actions";
+  }
+  .org-profile-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Shared page-grid aliases (PageGrid component / future pages) */
+.page-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: var(--page-grid-gap, 24px);
+  align-items: stretch;
+}
+.page-grid--equal {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+.page-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  box-sizing: border-box;
+  margin: 0;
+}
+.page-grid-actions {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--page-grid-gap, 24px);
+  margin: 0;
+}
+.page-grid-actions .btn { width: 100%; }
+@media (max-width: 768px) {
+  .page-grid,
+  .page-grid--equal { grid-template-columns: 1fr; }
+  .page-grid-actions { grid-template-columns: 1fr; }
+}
+
+
 .profile-account-page {
   min-height: 60vh;
   padding-bottom: 3rem;
@@ -3833,13 +3948,21 @@ body:has(.msg-layout) .site-footer {
 .profile-account-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1rem;
+  gap: var(--page-grid-gap, 24px);
 }
 .profile-section {
   min-width: 0;
   padding: clamp(1rem, 2.5vw, 1.5rem);
   border: 1px solid var(--line);
   background: var(--panel);
+}
+.profile-account-grid {
+  align-items: stretch;
+}
+.profile-account-grid .profile-section {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 .profile-section-wide {
   grid-column: 1 / -1;
@@ -4552,7 +4675,6 @@ body:has(.msg-layout) .site-footer {
   align-items: center;
   gap: 0.65rem;
   width: 100%;
-  max-width: 520px;
   min-height: 46px;
   margin: 0 0 1.25rem;
   padding: 0.55rem 0.8rem;

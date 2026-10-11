@@ -13,7 +13,10 @@ export default function SiteSearch({
 }) {
   return (
     <div className="page-search">
-      <label className="sr-only" htmlFor="page-content-search">
+      <label
+        htmlFor="page-content-search"
+        style={{ whiteSpace: "nowrap", flexShrink: 0 }}
+      >
         {label}
       </label>
       <svg
@@ -32,6 +35,7 @@ export default function SiteSearch({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
+        style={{ flex: 1, minWidth: 0 }}
       />
     </div>
   );
