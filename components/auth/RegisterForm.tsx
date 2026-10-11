@@ -3,6 +3,11 @@
 import Link from "next/link";
 import { useState, useEffect, FormEvent } from "react";
 import { createClient } from "@/lib/supabase/client";
+import TeamLogoUploader, {
+  type PreparedLogo,
+} from "./TeamLogoUploader";
+
+const LOGO_BUCKET = "team-logos";
 
 export default function RegisterForm() {
   const supabase = createClient();
@@ -23,6 +28,7 @@ export default function RegisterForm() {
   const [roster, setRoster] = useState("");
   const [notes, setNotes] = useState("");
   const [agree, setAgree] = useState(false);
+  const [logo, setLogo] = useState<PreparedLogo | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -58,8 +64,31 @@ export default function RegisterForm() {
     }
 
     setLoading(true);
+
+    // Upload the logo first (optional). Stored under the user's own folder.
+    let logoPath: string | null = null;
+    let logoUrl: string | null = null;
+    if (logo) {
+      const path = `${userId}/${crypto.randomUUID()}.${logo.extension}`;
+      const { error: uploadError } = await supabase.storage
+        .from(LOGO_BUCKET)
+        .upload(path, logo.blob, {
+          contentType: logo.contentType,
+          upsert: false,
+        });
+      if (uploadError) {
+        setLoading(false);
+        setError(`Could not upload the team logo: ${uploadError.message}`);
+        return;
+      }
+      logoPath = path;
+      logoUrl = supabase.storage.from(LOGO_BUCKET).getPublicUrl(path).data
+        .publicUrl;
+    }
+
     const { error: err } = await supabase.from("registrations").insert({
       submitted_by: userId,
+      logo_url: logoUrl,
       team_name: teamName.trim(),
       team_tag: teamTag.trim(),
       league,
@@ -73,6 +102,10 @@ export default function RegisterForm() {
     setLoading(false);
 
     if (err) {
+      // Don't leave an orphaned logo behind if the registration failed.
+      if (logoPath) {
+        await supabase.storage.from(LOGO_BUCKET).remove([logoPath]);
+      }
       setError(err.message);
       return;
     }
@@ -124,6 +157,8 @@ export default function RegisterForm() {
           />
           <div className="field-error">Enter your team name.</div>
         </div>
+
+        <TeamLogoUploader disabled={loading} onChange={setLogo} />
 
         <div className="field-row">
           <div className="field">

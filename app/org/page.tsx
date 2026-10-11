@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
+import OrgIdentity from "@/components/org/OrgIdentity";
 
 export const metadata: Metadata = {
   title: "Team Profile · R3IGN HQ",
@@ -454,182 +455,134 @@ export default async function OrgPage({ searchParams }: Props) {
       <section className="section-tight">
         <div className="wrap">
           <div id="org-content">
-            <div
-              className="dossier-grid"
-              style={{
-                gridTemplateColumns: "2fr 1fr",
-                gap: "2rem",
-              }}
-            >
-              <div>
-                <div className="form-panel">
-                  <span className="eyebrow">Roster</span>
-                  {result.live ? (
-                    rosterMembers.length > 0 ? (
-                      <ul className="org-roster-grid" id="org-roster">
-                        {rosterMembers.map((member, index) => {
-                          const memberName = member.display_name || "Player";
-                          const publicId = member.player_id || member.league_id;
-                          const memberContent = (
-                            <>
-                              <span className="org-roster-avatar">
-                                {member.avatar_url ? (
-                                  <img src={member.avatar_url} alt="" />
-                                ) : (
-                                  memberName.charAt(0).toUpperCase()
-                                )}
-                              </span>
-                              <span className="org-roster-member-info">
-                                <strong>{memberName}</strong>
-                                <span className="org-roster-role">
-                                  {member.role}
-                                </span>
-                              </span>
-                            </>
-                          );
-
-                          return (
-                            <li
-                              className="org-roster-member"
-                              key={`${publicId ?? member.role}-${index}`}
-                            >
-                              {publicId ? (
-                                <Link
-                                  href={`/player/${encodeURIComponent(publicId)}`}
-                                  className="org-roster-member-link"
-                                >
-                                  {memberContent}
-                                </Link>
+            {/*
+              Explicit grid-template-areas so row edges always align.
+              Do not wrap these cards in extra column divs.
+            */}
+            <div className="org-profile-grid">
+              <div className="form-panel org-profile-card org-card-roster">
+                <span className="eyebrow">Roster</span>
+                {result.live ? (
+                  rosterMembers.length > 0 ? (
+                    <ul className="org-roster-grid" id="org-roster">
+                      {rosterMembers.map((member, index) => {
+                        const memberName = member.display_name || "Player";
+                        const publicId = member.player_id || member.league_id;
+                        const memberContent = (
+                          <>
+                            <span className="org-roster-avatar">
+                              {member.avatar_url ? (
+                                <img src={member.avatar_url} alt="" />
                               ) : (
-                                <div className="org-roster-member-link">
-                                  {memberContent}
-                                </div>
+                                memberName.charAt(0).toUpperCase()
                               )}
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    ) : (
-                      <p className="lede org-roster-empty" id="org-roster">
-                        No active members listed yet.
-                      </p>
-                    )
+                            </span>
+                            <span className="org-roster-member-info">
+                              <strong>{memberName}</strong>
+                              <span className="org-roster-role">
+                                {member.role}
+                              </span>
+                            </span>
+                          </>
+                        );
+
+                        return (
+                          <li
+                            className="org-roster-member"
+                            key={`${publicId ?? member.role}-${index}`}
+                          >
+                            {publicId ? (
+                              <Link
+                                href={`/player/${encodeURIComponent(publicId)}`}
+                                className="org-roster-member-link"
+                              >
+                                {memberContent}
+                              </Link>
+                            ) : (
+                              <div className="org-roster-member-link">
+                                {memberContent}
+                              </div>
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ul>
                   ) : (
-                    <p
-                      className="lede"
-                      id="org-roster"
-                      style={{ marginTop: "0.75rem", whiteSpace: "pre-line" }}
-                    >
-                      {org.roster || "No roster listed yet."}
+                    <p className="lede org-roster-empty" id="org-roster">
+                      No active members listed yet.
                     </p>
-                  )}
-                </div>
-                <div className="form-panel mt-lg">
-                  <span className="eyebrow">League Record</span>
-                  <div className="table-wrap" style={{ marginTop: "1rem" }}>
-                    <table className="rank-table">
-                      <thead>
-                        <tr>
-                          <th>League</th>
-                          <th>Season</th>
-                          <th>W</th>
-                          <th>L</th>
-                          <th>Win %</th>
-                        </tr>
-                      </thead>
-                      <tbody id="org-record-rows">
-                        {recordRows.length > 0 ? (
-                          recordRows.map((r, i) => (
-                            <tr key={i}>
-                              <td>{(r.league || "—").toUpperCase()}</td>
-                              <td>{r.season}</td>
-                              <td colSpan={3}>
-                                {r.record} ({r.pct} win rate)
-                              </td>
-                            </tr>
-                          ))
-                        ) : (
-                          <tr>
-                            <td colSpan={5} style={{ color: "var(--steel)" }}>
-                              No matches reported yet.
+                  )
+                ) : (
+                  <p className="lede" id="org-roster">
+                    {org.roster || "No roster listed yet."}
+                  </p>
+                )}
+              </div>
+
+              <div className="form-panel org-profile-card org-card-identity">
+                <OrgIdentity tag={org.tag} region={org.region} />
+              </div>
+
+              <div className="form-panel org-profile-card org-card-record">
+                <span className="eyebrow">League Record</span>
+                <div className="table-wrap" style={{ marginTop: "1rem" }}>
+                  <table className="rank-table">
+                    <thead>
+                      <tr>
+                        <th>League</th>
+                        <th>Season</th>
+                        <th>W</th>
+                        <th>L</th>
+                        <th>Win %</th>
+                      </tr>
+                    </thead>
+                    <tbody id="org-record-rows">
+                      {recordRows.length > 0 ? (
+                        recordRows.map((r, i) => (
+                          <tr key={i}>
+                            <td>{(r.league || "—").toUpperCase()}</td>
+                            <td>{r.season}</td>
+                            <td colSpan={3}>
+                              {r.record} ({r.pct} win rate)
                             </td>
                           </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={5} style={{ color: "var(--steel)" }}>
+                            No matches reported yet.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
-              <div>
-                <div
-                  className="account-card"
-                  style={{
-                    flexDirection: "column",
-                    alignItems: "flex-start",
-                    gap: "1rem",
-                  }}
-                >
-                  <div
-                    className="account-avatar"
-                    id="org-badge"
-                    style={{ width: "56px", height: "56px" }}
-                  >
-                    {org.tag || "?"}
-                  </div>
-                  <div className="account-meta">
-                    <h3 id="org-tag-full">{org.tag || "—"}</h3>
-                    <p id="org-region">{org.region || "Region not set"}</p>
-                  </div>
-                </div>
-                <div className="form-panel mt-lg">
-                  <span className="eyebrow">Socials</span>
-                  <ul
-                    id="org-socials"
-                    style={{
-                      marginTop: "1rem",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: "0.6rem",
-                    }}
-                  >
-                    {socials.length === 0 ? (
-                      <li style={{ color: "var(--steel)", fontSize: "0.85rem" }}>
-                        No linked socials yet.
+
+              <div className="form-panel org-profile-card org-card-socials">
+                <span className="eyebrow">Socials</span>
+                <ul id="org-socials" className="org-socials-list">
+                  {socials.length === 0 ? (
+                    <li className="org-socials-empty">No linked socials yet.</li>
+                  ) : (
+                    socials.map((s) => (
+                      <li key={s.label}>
+                        <a href={s.href} target="_blank" rel="noopener">
+                          {s.label}
+                        </a>
                       </li>
-                    ) : (
-                      socials.map((s) => (
-                        <li key={s.label}>
-                          <a
-                            href={s.href}
-                            target="_blank"
-                            rel="noopener"
-                            style={{ color: "var(--paper)" }}
-                          >
-                            {s.label}
-                          </a>
-                        </li>
-                      ))
-                    )}
-                  </ul>
-                </div>
-                <div
-                  className="cta-actions"
-                  style={{
-                    marginTop: "1.5rem",
-                    flexDirection: "column",
-                    alignItems: "stretch",
-                  }}
-                >
-                  <Link
-                    href="/player-market"
-                    className="btn btn-ghost btn-block"
-                  >
-                    Browse Player Market
-                  </Link>
-                  <Link href="/rankings" className="btn btn-primary btn-block">
-                    Full Rankings
-                  </Link>
-                </div>
+                    ))
+                  )}
+                </ul>
+              </div>
+
+              <div className="org-profile-actions">
+                <Link href="/player-market" className="btn btn-ghost btn-block">
+                  Browse Player Market
+                </Link>
+                <Link href="/rankings" className="btn btn-primary btn-block">
+                  Full Rankings
+                </Link>
               </div>
             </div>
           </div>

@@ -1826,7 +1826,7 @@ table.rank-table{
 .public-profile-owner-banner{ display:flex; justify-content:center; align-items:center; gap:0.5rem; flex-wrap:wrap; padding:0.65rem 1rem; border-bottom:1px solid var(--line); background:var(--panel); color:var(--paper-dim); font-family:var(--f-mono); font-size:0.72rem; text-align:center; }
 .public-profile-owner-banner a{ color:var(--amber); }
 .public-profile-hero{ display:flex; align-items:center; gap:clamp(1.25rem,4vw,2.5rem); padding-block:clamp(2.5rem,7vw,4.5rem); border-bottom:1px solid var(--line); }
-.public-profile-avatar{ width:clamp(88px,18vw,144px); height:clamp(88px,18vw,144px); flex:0 0 auto; display:flex; align-items:center; justify-content:center; overflow:hidden; border:1px solid var(--amber); border-radius:50%; background:var(--panel-2); color:var(--amber); font-family:var(--f-display); font-size:2rem; }
+.public-profile-avatar{ width:var(--hero-avatar-size); height:var(--hero-avatar-size); flex:0 0 auto; display:flex; align-items:center; justify-content:center; overflow:hidden; border:1px solid var(--amber); border-radius:50%; background:var(--panel-2); color:var(--amber); font-family:var(--f-display); font-size:2rem; }
 .public-profile-avatar img{ width:100%; height:100%; object-fit:cover; border-radius:50%; }
 .public-profile-identity{ min-width:0; }
 .public-profile-identity h1{ margin-top:0.25rem; font-size:clamp(2rem,6vw,3.5rem); line-height:1.05; overflow-wrap:anywhere; }
@@ -3834,6 +3834,8 @@ body:has(.msg-layout) .site-footer {
    ========================================================================== */
 :root {
   --page-grid-gap: 24px;
+  /* Large avatar used by player AND org profile heroes. Change once, both follow. */
+  --hero-avatar-size: clamp(88px, 18vw, 144px);
 }
 .org-profile-grid {
   display: grid;
@@ -3859,11 +3861,70 @@ body:has(.msg-layout) .site-footer {
   box-sizing: border-box;
   margin: 0; /* kill any mt-lg leftovers */
 }
-.org-identity-inner {
+/* Gold label tags must hug their text inside the flex-column cards */
+.org-profile-card > .eyebrow {
+  align-self: flex-start;
+}
+
+/* Org identity: large avatar with the tag beside it (matches player hero) */
+.org-card-identity {
+  justify-content: center;
+}
+.org-identity {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: clamp(1rem, 2vw, 1.5rem);
+  min-width: 0;
+}
+.org-identity-avatar {
+  width: var(--hero-avatar-size);
+  height: var(--hero-avatar-size);
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid var(--amber);
+  border-radius: 50%;
+  background: var(--panel-2);
+  color: var(--amber);
+  font-family: var(--f-display);
+  font-size: calc(var(--hero-avatar-size) * 0.3);
+  text-transform: uppercase;
+}
+.org-identity-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+.org-identity-text {
+  min-width: 0;
+  flex: 1 1 6rem;
+}
+.org-identity-tag {
+  font-size: calc(clamp(2.25rem, 5vw, 3.75rem) * var(--tag-scale, 1));
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: 0.02em;
+  overflow-wrap: anywhere;
+}
+.org-identity-region {
+  margin-top: 0.4rem;
+  color: var(--paper-dim);
+  font-family: var(--f-mono);
+  font-size: 0.78rem;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 640px) {
+  .org-identity {
+    flex-direction: column;
+    text-align: center;
+  }
+  .org-identity-text {
+    flex: 0 1 auto;
+  }
 }
 .org-socials-list {
   margin-top: 1rem;
@@ -5403,4 +5464,59 @@ body:has(.msg-layout) .site-footer {
   .profile-row-actions .btn { flex: 1 1 0; justify-content: center; min-height: 42px; }
   .profile-game-account, .profile-team-row, .profile-connection-row { padding: 0.85rem; }
 }
+
+/* ==========================================================================
+   /register — logo uploader + roomier form layout
+   Paste at the very END of app/globals.css
+   ========================================================================== */
+.register-wrap { max-width: 680px; }
+.register-wrap .auth-panel .lede { margin-bottom: 1.75rem; }
+.register-wrap .field-row { align-items: start; }
+.register-wrap .field select { min-width: 0; text-overflow: ellipsis; }
+
+.field-label {
+  display: block;
+  font-family: var(--f-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--paper-dim);
+  margin-bottom: 0.55rem;
+}
+.logo-upload {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1rem;
+  border: 1px dashed var(--line);
+  background: var(--panel);
+}
+.logo-upload-preview {
+  width: 88px;
+  height: 88px;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 0;
+  border: 1px solid var(--amber);
+  border-radius: 50%;
+  background: var(--panel-2);
+  color: var(--amber);
+  font-family: var(--f-display);
+  font-size: 2rem;
+  cursor: pointer;
+}
+.logo-upload-preview:hover:not(:disabled) { border-color: var(--signal); }
+.logo-upload-preview img { width: 100%; height: 100%; object-fit: cover; }
+.logo-upload-body { min-width: 0; }
+.logo-upload-actions { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+.logo-upload-actions .btn { padding: 0.6em 1em; font-size: 0.7rem; }
+.logo-upload-body .field-hint { margin-top: 0.6rem; overflow-wrap: anywhere; }
+.logo-upload-error { margin-top: 0.5rem; color: var(--signal); font-size: 0.82rem; }
+@media (max-width: 480px) {
+  .logo-upload { flex-direction: column; align-items: flex-start; }
+}
+
 }

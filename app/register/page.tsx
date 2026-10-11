@@ -22,7 +22,7 @@ export default function RegisterPage() {
   return (
     <main id="main-content">
       <section className="section-tight">
-        <div className="wrap auth-wrap">
+        <div className="wrap auth-wrap register-wrap">
           <div className="auth-panel">
             <span className="eyebrow">Team Registration</span>
             <h1 style={{ marginTop: "0.75rem" }}>Register Your Team</h1>
