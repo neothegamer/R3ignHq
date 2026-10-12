@@ -677,6 +677,7 @@ export type Database = {
           league: string | null
           notes: string | null
           profile_id: string | null
+          profile_screenshot_path: string | null
           region: string | null
           role: string
           status: string
@@ -688,6 +689,7 @@ export type Database = {
           league?: string | null
           notes?: string | null
           profile_id?: string | null
+          profile_screenshot_path?: string | null
           region?: string | null
           role: string
           status?: string
@@ -699,6 +701,7 @@ export type Database = {
           league?: string | null
           notes?: string | null
           profile_id?: string | null
+          profile_screenshot_path?: string | null
           region?: string | null
           role?: string
           status?: string

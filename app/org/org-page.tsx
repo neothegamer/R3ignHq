@@ -597,7 +597,6 @@ export default async function OrgPage({ searchParams }: Props) {
               </div>
             </div>
           </div>
-          </div>
         </div>
       </section>
     </main>
