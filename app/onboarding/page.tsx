@@ -43,9 +43,30 @@ export default async function OnboardingPage({
     ]);
 
   if (profileResult.error) throw profileResult.error;
-  const profile = profileResult.data;
+  let profile = profileResult.data;
   if (!profile) {
     throw new Error("The signed-in account has no profile record.");
+  }
+
+  // Ensure public player ID exists (R3N-######) for new / legacy accounts
+  if (!profile.player_id) {
+    try {
+      const { data: ensured } = await supabase.rpc("ensure_my_player_id");
+      if (typeof ensured === "string" && ensured) {
+        profile = { ...profile, player_id: ensured };
+      } else {
+        const { data: refreshed } = await supabase
+          .from("profiles")
+          .select(
+            "display_name, country, bio, player_id, league_id, avatar_url, selected_games, r3ign_hq_joined, onboarding_step, onboarding_completed"
+          )
+          .eq("id", user.id)
+          .single();
+        if (refreshed) profile = refreshed;
+      }
+    } catch {
+      // RPC may be missing on older DBs; page still works with league_id fallback
+    }
   }
 
   if (profile.onboarding_completed && !allowEdit) {
@@ -70,7 +91,7 @@ export default async function OnboardingPage({
   const initial: OnboardingInitialData = {
     userId: user.id,
     displayName: profile.display_name ?? "",
-    country: profile.country ?? "Nigeria",
+    country: profile.country ?? "Africa",
     bio: profile.bio ?? "",
     playerId: profile.player_id || profile.league_id || "",
     avatarUrl: profile.avatar_url ?? null,

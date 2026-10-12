@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Footer from "@/components/Footer";
+import HeroVideo from "@/components/HeroVideo";
 
 export default function HomePage() {
   return (
@@ -7,6 +8,7 @@ export default function HomePage() {
       <main id="main-content">
       {/* HERO */}
       <section className="hero">
+        <HeroVideo />
         <div className="wrap">
           <div className="hero-frame">
             <span className="eyebrow">R3IGN HQ</span>
@@ -30,9 +32,7 @@ export default function HomePage() {
               </Link>
             </div>
           </div>
-          <div className="ink-stamp hero-stamp" aria-hidden="true">
-            <b>R3IGN</b>OFFICIAL
-          </div>
+          
         </div>
       </section>
 
