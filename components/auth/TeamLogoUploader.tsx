@@ -65,29 +65,6 @@ async function prepareLogo(file: File): Promise<PreparedLogo> {
   }
 }
 
-const PREVIEW_SIZE = 88;
-
-/** Simple "add image" icon shown while no logo is chosen. */
-function ImageIcon() {
-  return (
-    <svg
-      width="30"
-      height="30"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <rect x="3" y="4" width="18" height="16" rx="2" />
-      <circle cx="9" cy="10" r="1.6" />
-      <path d="m21 16-5-5-8 8" />
-    </svg>
-  );
-}
-
 export default function TeamLogoUploader({ disabled, onChange }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -150,23 +127,16 @@ export default function TeamLogoUploader({ disabled, onChange }: Props) {
       <div className="logo-upload">
         <button
           type="button"
-          className="logo-upload-preview"
-          style={{ width: PREVIEW_SIZE, height: PREVIEW_SIZE }}
+          className={`logo-upload-preview${previewUrl ? " has-logo" : ""}`}
           onClick={() => inputRef.current?.click()}
           disabled={disabled || busy}
           aria-labelledby="team-logo-label"
         >
           {previewUrl ? (
-            <img
-              src={previewUrl}
-              alt="Team logo preview"
-              style={{ width: "100%", height: "100%", objectFit: "cover" }}
-            />
+            <img src={previewUrl} alt="Team logo preview" />
           ) : busy ? (
             <span aria-hidden="true">…</span>
-          ) : (
-            <ImageIcon />
-          )}
+          ) : null}
         </button>
         <div className="logo-upload-body">
           <div className="logo-upload-actions">

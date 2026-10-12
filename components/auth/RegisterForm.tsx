@@ -143,7 +143,12 @@ export default function RegisterForm() {
   return (
     <>
       {error && <div className="auth-error is-visible">{error}</div>}
-      <form id="register-form" onSubmit={handleSubmit} noValidate>
+      <form
+        id="register-form"
+        className="register-form"
+        onSubmit={handleSubmit}
+        noValidate
+      >
         <div className="field">
           <label htmlFor="team-name">
             Team name <span className="req">*</span>

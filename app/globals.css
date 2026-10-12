@@ -5465,25 +5465,87 @@ body:has(.msg-layout) .site-footer {
   .profile-game-account, .profile-team-row, .profile-connection-row { padding: 0.85rem; }
 }
 
-/* ==========================================================================
-   /register — logo uploader + roomier form layout
-   Paste at the very END of app/globals.css
-   ========================================================================== */
-.register-wrap { max-width: 680px; }
-.register-wrap .auth-panel .lede { margin-bottom: 1.75rem; }
-.register-wrap .field-row { align-items: start; }
-.register-wrap .field select { min-width: 0; text-overflow: ellipsis; }
 
-.field-label {
-  display: block;
-  font-family: var(--f-mono);
-  font-size: 0.72rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--paper-dim);
-  margin-bottom: 0.55rem;
+/* ==========================================================================
+   /register — team logo + even form boxes
+   Paste at the very END of app/globals.css. Scoped under .register-form
+   (and the logo classes), so it can't affect other pages.
+   If you pasted an earlier "/register" or "logo uploader" CSS block, delete
+   it first — this one replaces it.
+   ========================================================================== */
+
+/* roomier card so two-column rows aren't cramped */
+.auth-wrap:has(.register-form) { max-width: 680px; }
+.auth-panel:has(.register-form) .lede { margin-bottom: 1.75rem; }
+
+.register-form {
+  --reg-gap: 1.25rem;
+  --reg-control-h: 3rem;
+  display: grid;
+  gap: var(--reg-gap);          /* identical space between every row */
 }
-.logo-upload {
+.register-form .field {
+  margin: 0;                    /* spacing now comes only from the grid gap */
+  min-width: 0;
+}
+.register-form .field-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));  /* equal-width boxes */
+  gap: var(--reg-gap);
+  align-items: start;
+  margin: 0;
+}
+
+/* labels: one line, same height, so paired inputs always line up */
+.register-form .field:not(.checkbox-field) > label,
+.register-form .field-label {
+  display: block;
+  margin-bottom: 0.55rem;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* every text box and dropdown: same height, same padding */
+.register-form .field input:not([type="checkbox"]),
+.register-form .field select {
+  width: 100%;
+  height: var(--reg-control-h);
+  box-sizing: border-box;
+  padding: 0 1rem;
+  font-size: 0.95rem;
+  line-height: normal;
+}
+.register-form .field select {
+  -webkit-appearance: none;
+  appearance: none;
+  padding-right: 2.5rem;
+  text-overflow: ellipsis;
+  background-color: var(--panel);
+  color: var(--paper);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none' stroke='%238F9390' stroke-width='1.5'><path d='M1 1.5l5 5 5-5'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 12px 8px;
+}
+.register-form .field select option {
+  background: var(--panel-2);
+  color: var(--paper);
+}
+.register-form .field textarea {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 7rem;
+  padding: 0.85rem 1rem;
+}
+.register-form .btn-block {
+  height: var(--reg-control-h);
+  justify-content: center;
+}
+
+/* logo box: same width, border style and rhythm as the inputs */
+.register-form .logo-upload {
   display: flex;
   align-items: center;
   gap: 1.25rem;
@@ -5491,6 +5553,23 @@ body:has(.msg-layout) .site-footer {
   border: 1px dashed var(--line);
   background: var(--panel);
 }
+.register-form .logo-upload-preview:hover:not(:disabled) { border-color: var(--signal); }
+.register-form .logo-upload-body { min-width: 0; }
+.register-form .logo-upload-actions { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+.register-form .logo-upload-actions .btn { padding: 0.6em 1em; font-size: 0.7rem; }
+.register-form .logo-upload-body .field-hint { margin-top: 0.6rem; overflow-wrap: anywhere; }
+.register-form .logo-upload-error { margin-top: 0.5rem; color: var(--signal); font-size: 0.82rem; }
+
+@media (max-width: 600px) {
+  .register-form .field-row { grid-template-columns: 1fr; }
+  .register-form .field:not(.checkbox-field) > label,
+  .register-form .field-label { white-space: normal; }
+}
+@media (max-width: 480px) {
+  .register-form .logo-upload { flex-direction: column; align-items: flex-start; }
+}
+
+/* round logo slot: empty = dashed circle, with logo = solid circle */
 .logo-upload-preview {
   width: 88px;
   height: 88px;
@@ -5498,25 +5577,29 @@ body:has(.msg-layout) .site-footer {
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
   padding: 0;
-  border: 1px solid var(--amber);
+  overflow: hidden;
+  border: 1px dashed var(--amber);
   border-radius: 50%;
   background: var(--panel-2);
   color: var(--amber);
   font-family: var(--f-display);
-  font-size: 2rem;
+  font-size: 1.6rem;
   cursor: pointer;
 }
-.logo-upload-preview:hover:not(:disabled) { border-color: var(--signal); }
-.logo-upload-preview img { width: 100%; height: 100%; object-fit: cover; }
-.logo-upload-body { min-width: 0; }
-.logo-upload-actions { display: flex; flex-wrap: wrap; gap: 0.6rem; }
-.logo-upload-actions .btn { padding: 0.6em 1em; font-size: 0.7rem; }
-.logo-upload-body .field-hint { margin-top: 0.6rem; overflow-wrap: anywhere; }
-.logo-upload-error { margin-top: 0.5rem; color: var(--signal); font-size: 0.82rem; }
-@media (max-width: 480px) {
-  .logo-upload { flex-direction: column; align-items: flex-start; }
+.logo-upload-preview.has-logo { border-style: solid; }
+.logo-upload-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
 }
-
+.field-label {
+  display: block;
+  font-family: var(--f-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--paper-dim);
+}
 }
