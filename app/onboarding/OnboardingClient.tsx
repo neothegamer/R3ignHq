@@ -3,7 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import AvatarUploader from "@/components/profile/AvatarUploader";
+import type { Database } from "@/lib/database.types";
 import { createClient } from "@/lib/supabase/client";
+
+type ProfileUpdate = Database["public"]["Tables"]["profiles"]["Update"];
 
 export type OnboardingGameId = "codm" | "freefire" | "bloodstrike";
 
@@ -162,7 +165,7 @@ export default function OnboardingClient({
     setNotice({ text, kind });
   }
 
-  async function saveProfile(fields: Record<string, unknown>) {
+  async function saveProfile(fields: ProfileUpdate) {
     const { error } = await supabase
       .from("profiles")
       .update(fields)
