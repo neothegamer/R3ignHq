@@ -99,28 +99,30 @@ export default function MyTeamsSection({
     }
   }
 
-  async function acceptInvitation(membership: TeamMembership) {
+  async function acceptInvitation(invitation: TeamMembership) {
     if (savingId) return;
-    const teamName = membership.organizationName ?? "this organization";
 
     const previous = memberships;
-    setSavingId(membership.id);
+    setSavingId(invitation.id);
     setMemberships((current) =>
       current.map((row) =>
-        row.id === membership.id ? { ...row, status: "active" } : row
+        row.id === invitation.id ? { ...row, status: "active" } : row
       )
     );
     setError("");
     setSuccess("");
+
     try {
       const { error: updateError } = await supabase
         .from("organization_members")
         .update({ status: "active" })
-        .eq("id", membership.id)
+        .eq("id", invitation.id)
         .eq("profile_id", profileId)
         .eq("status", "invited");
       if (updateError) throw updateError;
-      setSuccess(`You joined ${teamName}.`);
+      setSuccess(
+        `You joined ${invitation.organizationName ?? "the team"}.`
+      );
     } catch (updateError: unknown) {
       setMemberships(previous);
       setError(
@@ -133,8 +135,8 @@ export default function MyTeamsSection({
     }
   }
 
-  async function declineInvitation(membership: TeamMembership) {
-    const teamName = membership.organizationName ?? "this organization";
+  async function declineInvitation(invitation: TeamMembership) {
+    const teamName = invitation.organizationName ?? "this organization";
     const confirmed = await confirm({
       title: "Decline invitation",
       message: `Decline the invitation to join ${teamName}?`,
@@ -144,19 +146,20 @@ export default function MyTeamsSection({
     if (!confirmed || savingId) return;
 
     const previous = memberships;
-    setSavingId(membership.id);
+    setSavingId(invitation.id);
     setMemberships((current) =>
       current.map((row) =>
-        row.id === membership.id ? { ...row, status: "left" } : row
+        row.id === invitation.id ? { ...row, status: "declined" } : row
       )
     );
     setError("");
     setSuccess("");
+
     try {
       const { error: updateError } = await supabase
         .from("organization_members")
-        .update({ status: "left" })
-        .eq("id", membership.id)
+        .update({ status: "declined" })
+        .eq("id", invitation.id)
         .eq("profile_id", profileId)
         .eq("status", "invited");
       if (updateError) throw updateError;
@@ -237,9 +240,9 @@ export default function MyTeamsSection({
                   {invitation.inviterName
                     ? `Invited by ${invitation.inviterName}`
                     : "Invitation pending"}
+                  {invitation.role ? ` · ${invitation.role}` : ""}
                 </span>
               </div>
-              <span className="profile-status-badge is-pending">Invited</span>
               <div className="profile-row-actions">
                 <button
                   type="button"
@@ -255,7 +258,7 @@ export default function MyTeamsSection({
                   onClick={() => declineInvitation(invitation)}
                   disabled={savingId === invitation.id}
                 >
-                  {savingId === invitation.id ? "Declining…" : "Decline"}
+                  {savingId === invitation.id ? "…" : "Decline"}
                 </button>
               </div>
             </article>
