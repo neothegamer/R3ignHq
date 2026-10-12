@@ -74,33 +74,28 @@ export type OnboardingInitialData = {
   linkedProviders: string[];
 };
 
-type CountryOption = { code: string; name: string };
+type RegionOption = { value: string; label: string };
 
-function getCountryOptions(): CountryOption[] {
-  const names = new Intl.DisplayNames(["en"], { type: "region" });
-  const countries: CountryOption[] = [];
-  for (let first = 65; first <= 90; first += 1) {
-    for (let second = 65; second <= 90; second += 1) {
-      const code = String.fromCharCode(first, second);
-      const name = names.of(code);
-      if (name && name !== code) countries.push({ code, name });
-    }
-  }
-  return countries.sort((a, b) => a.name.localeCompare(b.name));
+/** Region list for onboarding (stable — no Intl hydration issues). */
+const REGION_OPTIONS: RegionOption[] = [
+  { value: "North America", label: "North America" },
+  { value: "Middle East", label: "Middle East" },
+  { value: "Europe", label: "Europe" },
+  { value: "Africa", label: "Africa" },
+  { value: "Others", label: "Others" },
+];
+
+const DEFAULT_REGION = "Africa";
+
+function getRegionOptions(): RegionOption[] {
+  return REGION_OPTIONS;
 }
 
-function countryFlag(code: string) {
-  if (!/^[A-Z]{2}$/.test(code)) return "";
-  return String.fromCodePoint(
-    ...Array.from(code, (letter) => letter.charCodeAt(0) + 127397)
-  );
-}
-
-function emptyDraft(defaultCountry: string): GameProfileDraft {
+function emptyDraft(defaultRegion: string): GameProfileDraft {
   return {
     ign: "",
     player_uid: "",
-    country: defaultCountry,
+    country: defaultRegion,
     role: "",
     team_clan: "",
     experience: "",
@@ -122,7 +117,7 @@ export default function OnboardingClient({
 
   const [step, setStep] = useState(() => clampStep(initial.step));
   const [displayName, setDisplayName] = useState(initial.displayName);
-  const [country, setCountry] = useState(initial.country || "Nigeria");
+  const [country, setCountry] = useState(initial.country || DEFAULT_REGION);
   const [bio, setBio] = useState(initial.bio);
   const [avatarUrl, setAvatarUrl] = useState(initial.avatarUrl);
   const [selectedGames, setSelectedGames] = useState<OnboardingGameId[]>(
@@ -131,7 +126,9 @@ export default function OnboardingClient({
   const [drafts, setDrafts] = useState<Record<string, GameProfileDraft>>(() => {
     const base: Record<string, GameProfileDraft> = {};
     for (const game of GAME_ORDER) {
-      base[game] = initial.gameProfiles[game] ?? emptyDraft(initial.country || "Nigeria");
+      base[game] =
+        initial.gameProfiles[game] ??
+        emptyDraft(initial.country || DEFAULT_REGION);
     }
     return base;
   });
@@ -146,7 +143,7 @@ export default function OnboardingClient({
     kind: "error" | "success";
   } | null>(null);
 
-  const countryOptions = useMemo(getCountryOptions, []);
+  const regionOptions = useMemo(getRegionOptions, []);
 
   const connectedProviders = useMemo(() => {
     return new Set<string>([
@@ -156,7 +153,10 @@ export default function OnboardingClient({
   }, [connections, initial.linkedProviders]);
 
   const discordConnected = connectedProviders.has("discord");
-  const tiktokConnected = connectedProviders.has("custom:tiktok") || connectedProviders.has("tiktok");
+  const googleConnected =
+    connectedProviders.has("google") || connectedProviders.has("google.com");
+  const tiktokConnected =
+    connectedProviders.has("custom:tiktok") || connectedProviders.has("tiktok");
 
   function showNotice(text: string, kind: "error" | "success") {
     setNotice({ text, kind });
@@ -193,7 +193,7 @@ export default function OnboardingClient({
   async function continueFromStep1() {
     const name = displayName.trim();
     if (!name) return showNotice("Display name is required.", "error");
-    if (!country) return showNotice("Country / Region is required.", "error");
+    if (!country) return showNotice("Region is required.", "error");
 
     setBusy(true);
     try {
@@ -312,7 +312,6 @@ export default function OnboardingClient({
       );
       if (accountError) {
         console.warn("Could not sync game account from onboarding:", accountError);
-        // Non-fatal: profile was saved; account list can be fixed later
       }
 
       setSavedGames((current) => new Set(current).add(game));
@@ -343,11 +342,19 @@ export default function OnboardingClient({
   }
 
   // ---------- STEP 4 ----------
-  async function connectProvider(provider: "discord" | "tiktok") {
+  async function connectProvider(provider: "discord" | "tiktok" | "google") {
     setBusy(true);
+    const providerLabel =
+      provider === "tiktok" ? "TikTok" : provider === "google" ? "Google" : "Discord";
+    const oauthProvider =
+      provider === "tiktok"
+        ? "custom:tiktok"
+        : provider === "google"
+          ? "google"
+          : "discord";
     try {
       const { error } = await supabase.auth.linkIdentity({
-        provider: provider === "tiktok" ? "custom:tiktok" : "discord",
+        provider: oauthProvider,
         options: {
           redirectTo: `${window.location.origin}/auth/callback?next=/onboarding`,
         },
@@ -358,7 +365,7 @@ export default function OnboardingClient({
       showNotice(
         error instanceof Error
           ? error.message
-          : `Could not start ${provider === "tiktok" ? "TikTok" : "Discord"} connection. You can also connect it from Account settings.`,
+          : `Could not start ${providerLabel} connection. You can also connect it from Account settings.`,
         "error"
       );
       setBusy(false);
@@ -415,10 +422,8 @@ export default function OnboardingClient({
     try {
       await saveProfile({ onboarding_completed: true, onboarding_step: 6 });
       // Public player profile: /player/[playerId]
-      const dest =
-        playerId && playerId.trim()
-          ? `/player/${encodeURIComponent(playerId.trim())}`
-          : `/player/${encodeURIComponent(initial.userId)}`;
+      const destId = (initial.playerId || "").trim() || initial.userId;
+      const dest = `/player/${encodeURIComponent(destId)}`;
       router.push(dest);
       router.refresh();
     } catch (error) {
@@ -486,16 +491,16 @@ export default function OnboardingClient({
               />
             </div>
             <div className="ob-field">
-              <label htmlFor="ob-country">Country / Region</label>
+              <label htmlFor="ob-country">Region</label>
               <select
                 id="ob-country"
                 value={country}
                 onChange={(event) => setCountry(event.currentTarget.value)}
               >
-                <option value="">Select country</option>
-                {countryOptions.map(({ code, name }) => (
-                  <option key={code} value={name}>
-                    {countryFlag(code)} {name}
+                <option value="">Select region</option>
+                {regionOptions.map(({ value, label }) => (
+                  <option key={value} value={value}>
+                    {label}
                   </option>
                 ))}
               </select>
@@ -619,7 +624,7 @@ export default function OnboardingClient({
                       />
                     </div>
                     <div className="ob-field">
-                      <label htmlFor={`country-${game}`}>Country / Region</label>
+                      <label htmlFor={`country-${game}`}>Region</label>
                       <select
                         id={`country-${game}`}
                         value={draft.country}
@@ -627,10 +632,10 @@ export default function OnboardingClient({
                           updateDraft(game, { country: event.currentTarget.value })
                         }
                       >
-                        <option value="">Select country</option>
-                        {countryOptions.map(({ code, name }) => (
-                          <option key={code} value={name}>
-                            {countryFlag(code)} {name}
+                        <option value="">Select region</option>
+                        {regionOptions.map(({ value, label }) => (
+                          <option key={value} value={value}>
+                            {label}
                           </option>
                         ))}
                       </select>
@@ -768,7 +773,18 @@ export default function OnboardingClient({
                 <span className="ob-conn-name">Google</span>
               </div>
               <div className="ob-conn-action">
-                <span className="ob-conn-status is-connected">✓ Connected</span>
+                {googleConnected ? (
+                  <span className="ob-conn-status is-connected">✓ Google Connected</span>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn"
+                    onClick={() => connectProvider("google")}
+                    disabled={busy}
+                  >
+                    Connect Google
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -819,7 +835,7 @@ export default function OnboardingClient({
                   onClick={markHqJoined}
                   disabled={busy}
                 >
-                  I've joined — mark as connected
+                  I&apos;ve joined — mark as connected
                 </button>
               </>
             )}
