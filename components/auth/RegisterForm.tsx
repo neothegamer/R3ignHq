@@ -203,7 +203,7 @@ export default function RegisterForm() {
         <div className="field-row">
           <div className="field">
             <label htmlFor="captain-name">
-              Captain full name <span className="req">*</span>
+              Captain name <span className="req">*</span>
             </label>
             <input
               type="text"

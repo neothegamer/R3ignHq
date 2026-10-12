@@ -5464,14 +5464,12 @@ body:has(.msg-layout) .site-footer {
   .profile-row-actions .btn { flex: 1 1 0; justify-content: center; min-height: 42px; }
   .profile-game-account, .profile-team-row, .profile-connection-row { padding: 0.85rem; }
 }
-
-
 /* ==========================================================================
-   /register — team logo + even form boxes
-   Paste at the very END of app/globals.css. Scoped under .register-form
-   (and the logo classes), so it can't affect other pages.
-   If you pasted an earlier "/register" or "logo uploader" CSS block, delete
-   it first — this one replaces it.
+   /register — even form boxes + team logo row
+   REPLACES the old "/register — team logo + even form boxes" block.
+   In app/globals.css delete everything from that comment to the end of the
+   file (including the stray "}" on the last line), then paste this at the end.
+   Scoped under .register-form, so it can't affect other pages.
    ========================================================================== */
 
 /* roomier card so two-column rows aren't cramped */
@@ -5485,7 +5483,7 @@ body:has(.msg-layout) .site-footer {
   gap: var(--reg-gap);          /* identical space between every row */
 }
 .register-form .field {
-  margin: 0;                    /* spacing now comes only from the grid gap */
+  margin: 0;                    /* spacing comes only from the grid gap */
   min-width: 0;
 }
 .register-form .field-row {
@@ -5508,7 +5506,7 @@ body:has(.msg-layout) .site-footer {
 }
 
 /* every text box and dropdown: same height, same padding */
-.register-form .field input:not([type="checkbox"]),
+.register-form .field input:not([type="checkbox"]):not(.visually-hidden),
 .register-form .field select {
   width: 100%;
   height: var(--reg-control-h);
@@ -5544,56 +5542,20 @@ body:has(.msg-layout) .site-footer {
   justify-content: center;
 }
 
-/* logo box: same width, border style and rhythm as the inputs */
-.register-form .logo-upload {
+/* team logo: uses the same .avatar-uploader-* look as the profile page */
+.register-form .team-logo-row {
   display: flex;
   align-items: center;
   gap: 1.25rem;
-  padding: 1rem;
-  border: 1px dashed var(--line);
-  background: var(--panel);
 }
-.register-form .logo-upload-preview:hover:not(:disabled) { border-color: var(--signal); }
-.register-form .logo-upload-body { min-width: 0; }
-.register-form .logo-upload-actions { display: flex; flex-wrap: wrap; gap: 0.6rem; }
-.register-form .logo-upload-actions .btn { padding: 0.6em 1em; font-size: 0.7rem; }
-.register-form .logo-upload-body .field-hint { margin-top: 0.6rem; overflow-wrap: anywhere; }
-.register-form .logo-upload-error { margin-top: 0.5rem; color: var(--signal); font-size: 0.82rem; }
+.register-form .team-logo-row .avatar-uploader { flex: 0 0 auto; }
+.register-form .avatar-uploader-preview { cursor: pointer; border-style: dashed; }
+.register-form .avatar-uploader-preview:has(img) { border-style: solid; }
+.register-form .avatar-uploader-preview:hover:not(:disabled) { border-color: var(--signal); }
+.register-form .team-logo-body { min-width: 0; }
+.register-form .team-logo-body .field-hint { margin-top: 0.6rem; }
+.register-form .field > .avatar-uploader-error { margin-top: 0.5rem; }
 
-@media (max-width: 600px) {
-  .register-form .field-row { grid-template-columns: 1fr; }
-  .register-form .field:not(.checkbox-field) > label,
-  .register-form .field-label { white-space: normal; }
-}
-@media (max-width: 480px) {
-  .register-form .logo-upload { flex-direction: column; align-items: flex-start; }
-}
-
-/* round logo slot: empty = dashed circle, with logo = solid circle */
-.logo-upload-preview {
-  width: 88px;
-  height: 88px;
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  overflow: hidden;
-  border: 1px dashed var(--amber);
-  border-radius: 50%;
-  background: var(--panel-2);
-  color: var(--amber);
-  font-family: var(--f-display);
-  font-size: 1.6rem;
-  cursor: pointer;
-}
-.logo-upload-preview.has-logo { border-style: solid; }
-.logo-upload-preview img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 50%;
-}
 .field-label {
   display: block;
   font-family: var(--f-mono);
@@ -5601,5 +5563,14 @@ body:has(.msg-layout) .site-footer {
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--paper-dim);
+}
+
+@media (max-width: 600px) {
+  .register-form .field-row { grid-template-columns: 1fr; }
+  .register-form .field:not(.checkbox-field) > label,
+  .register-form .field-label { white-space: normal; }
+}
+@media (max-width: 480px) {
+  .register-form .team-logo-row { flex-direction: column; align-items: flex-start; }
 }
 }
