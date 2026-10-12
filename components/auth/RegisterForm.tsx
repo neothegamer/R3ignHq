@@ -235,7 +235,7 @@ export default function RegisterForm() {
             <input
               type="text"
               id="discord"
-              placeholder="username"
+              placeholder="discord"
               value={discord}
               onChange={(e) => setDiscord(e.target.value)}
             />
