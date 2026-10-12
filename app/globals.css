@@ -5437,6 +5437,7 @@ body:has(.msg-layout) .site-footer {
     width: 100%;
     justify-content: center;
   }
+  }
   /* ===== /account — mobile refinements ===== */
 
 /* Compact identity header: avatar beside the name, not on top */
