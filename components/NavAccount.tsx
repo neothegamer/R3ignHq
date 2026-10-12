@@ -40,16 +40,11 @@ export default async function NavAccount({ mobileMenu = false }: Props) {
 
   // Best-effort: repair missing public ID so "My profile" always links correctly
   if (!profileId) {
-    try {
-      await supabase.rpc("ensure_my_player_id");
-    } catch {
-      /* optional RPC */
-    }
-    try {
-      await supabase.rpc("ensure_my_league_id");
-    } catch {
-      /* optional RPC */
-    }
+    // rpc() resolves with { error } instead of throwing, so we ignore the result.
+    await Promise.allSettled([
+      supabase.rpc("ensure_my_player_id"),
+      supabase.rpc("ensure_my_league_id"),
+    ]);
 
     profileResult = await supabase
       .from("profiles")

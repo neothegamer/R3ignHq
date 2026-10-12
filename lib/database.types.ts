@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.15"
   }
   public: {
     Tables: {
@@ -631,6 +631,7 @@ export type Database = {
           division: number | null
           id: string
           league: string
+          logo_url: string | null
           name: string
           owner_id: string | null
           region: string | null
@@ -641,6 +642,7 @@ export type Database = {
           division?: number | null
           id?: string
           league: string
+          logo_url?: string | null
           name: string
           owner_id?: string | null
           region?: string | null
@@ -651,6 +653,7 @@ export type Database = {
           division?: number | null
           id?: string
           league?: string
+          logo_url?: string | null
           name?: string
           owner_id?: string | null
           region?: string | null
@@ -674,7 +677,6 @@ export type Database = {
           league: string | null
           notes: string | null
           profile_id: string | null
-          profile_screenshot_path: string | null
           region: string | null
           role: string
           status: string
@@ -686,7 +688,6 @@ export type Database = {
           league?: string | null
           notes?: string | null
           profile_id?: string | null
-          profile_screenshot_path?: string | null
           region?: string | null
           role: string
           status?: string
@@ -698,7 +699,6 @@ export type Database = {
           league?: string | null
           notes?: string | null
           profile_id?: string | null
-          profile_screenshot_path?: string | null
           region?: string | null
           role?: string
           status?: string
@@ -720,6 +720,7 @@ export type Database = {
           country: string | null
           created_at: string | null
           display_name: string | null
+          email: string | null
           id: string
           league_id: string | null
           onboarding_completed: boolean | null
@@ -734,6 +735,7 @@ export type Database = {
           country?: string | null
           created_at?: string | null
           display_name?: string | null
+          email?: string | null
           id: string
           league_id?: string | null
           onboarding_completed?: boolean | null
@@ -748,6 +750,7 @@ export type Database = {
           country?: string | null
           created_at?: string | null
           display_name?: string | null
+          email?: string | null
           id?: string
           league_id?: string | null
           onboarding_completed?: boolean | null
@@ -816,6 +819,7 @@ export type Database = {
           discord: string | null
           id: string
           league: string
+          logo_url: string | null
           notes: string | null
           region: string
           roster: string
@@ -831,6 +835,7 @@ export type Database = {
           discord?: string | null
           id?: string
           league: string
+          logo_url?: string | null
           notes?: string | null
           region: string
           roster: string
@@ -846,6 +851,7 @@ export type Database = {
           discord?: string | null
           id?: string
           league?: string
+          logo_url?: string | null
           notes?: string | null
           region?: string
           roster?: string
@@ -1001,7 +1007,32 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      public_connections: {
+        Row: {
+          profile_id: string | null
+          provider: string | null
+          username: string | null
+        }
+        Insert: {
+          profile_id?: string | null
+          provider?: string | null
+          username?: string | null
+        }
+        Update: {
+          profile_id?: string | null
+          provider?: string | null
+          username?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "connections_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       blocked_by_peer: { Args: { me: string; peer: string }; Returns: boolean }
@@ -1010,6 +1041,7 @@ export type Database = {
         Returns: boolean
       }
       ensure_my_league_id: { Args: never; Returns: string }
+      ensure_my_player_id: { Args: never; Returns: string }
       generate_league_id: { Args: never; Returns: string }
       generate_player_id: { Args: never; Returns: string }
       is_display_name_taken: { Args: { p_name: string }; Returns: boolean }
