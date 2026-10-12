@@ -3033,7 +3033,6 @@ img[loading="lazy"] {
 }
 
 /* ===== Messages: keep compose bar always visible ===== */
-/* ===== Messages: keep compose bar always visible ===== */
 body:has(.msg-layout) .site-footer {
   display: none;
 }
@@ -3232,8 +3231,6 @@ body:has(.msg-layout) .site-footer {
 }
 
 /* Message attachments */
-
-/* Message attachments */
 .msg-file-input {
   display: none;
 }
@@ -3297,8 +3294,6 @@ body:has(.msg-layout) .site-footer {
   flex: 1;
   min-width: 0;
 }
-
-/* Message block / report */
 
 /* Message block / report */
 .msg-thread-head {
@@ -3365,8 +3360,6 @@ body:has(.msg-layout) .site-footer {
 }
 
 /* Blocked conversations UI */
-
-/* Blocked conversations UI */
 .msg-list-head-blocked {
   margin-top: 0.5rem;
   opacity: 0.75;
@@ -3395,8 +3388,6 @@ body:has(.msg-layout) .site-footer {
   background: rgba(200, 60, 50, 0.08);
   border-bottom: 1px solid var(--line);
 }
-
-/* Themed scrollbars (messages + global thin) */
 
 /* Themed scrollbars (messages + global thin) */
 .msg-thread-body,
@@ -3437,8 +3428,6 @@ body:has(.msg-layout) .site-footer {
   padding: 1.25rem;
 }
 
-/* Report modal fields */
-
 /* Report modal fields (centered overlay, not inside chat) */
 .msg-report-modal {
   display: flex;
@@ -3472,8 +3461,6 @@ body:has(.msg-layout) .site-footer {
 }
 
 /* Muted conversations */
-
-/* Muted conversations */
 .msg-muted-tag {
   margin-left: 0.4rem;
   font-size: 0.65rem;
@@ -3497,8 +3484,6 @@ body:has(.msg-layout) .site-footer {
 }
 
 /* Soft-deleted messages */
-
-/* Soft-deleted messages */
 .msg-bubble.is-deleted {
   opacity: 0.75;
 }
@@ -3512,8 +3497,6 @@ body:has(.msg-layout) .site-footer {
 .msg-bubble.theirs.is-deleted {
   background: rgba(255, 255, 255, 0.04);
 }
-
-/* Conversation search */
 
 /* Conversation search */
 .msg-conv-search {
@@ -3538,8 +3521,6 @@ body:has(.msg-layout) .site-footer {
   outline: 1px solid var(--signal, #c83c32);
   border-color: var(--signal, #c83c32);
 }
-
-/* Link previews in messages */
 
 /* Link previews in messages */
 .msg-link-previews {
@@ -3582,8 +3563,6 @@ body:has(.msg-layout) .site-footer {
 .msg-link-card:hover .msg-link-domain {
   color: var(--signal, #c83c32);
 }
-
-/* Stronger empty states */
 
 /* Stronger empty states */
 .msg-empty-panel {
@@ -5437,8 +5416,9 @@ body:has(.msg-layout) .site-footer {
     width: 100%;
     justify-content: center;
   }
-  }
-  /* ===== /account — mobile refinements ===== */
+}
+
+/* ===== /account — mobile refinements ===== */
 
 /* Compact identity header: avatar beside the name, not on top */
 @media (max-width: 760px) {
@@ -5494,11 +5474,9 @@ body:has(.msg-layout) .site-footer {
   .profile-row-actions .btn { flex: 1 1 0; justify-content: center; min-height: 42px; }
   .profile-game-account, .profile-team-row, .profile-connection-row { padding: 0.85rem; }
 }
+
 /* ==========================================================================
    /register — even form boxes + team logo row
-   REPLACES the old "/register — team logo + even form boxes" block.
-   In app/globals.css delete everything from that comment to the end of the
-   file (including the stray "}" on the last line), then paste this at the end.
    Scoped under .register-form, so it can't affect other pages.
    ========================================================================== */
 
