@@ -1,3 +1,4 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import type { LiveRanking, MatchResult } from "@/lib/standings";
 
@@ -34,6 +35,15 @@ export async function getOrganizations(): Promise<OrgSummary[]> {
   return data as OrgSummary[];
 }
 
+/** URL slug for a team page (`/org?name=<slug>`); same rule as the team page. */
+export function orgSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 export async function getRankings(): Promise<RankingSummary[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -45,16 +55,21 @@ export async function getRankings(): Promise<RankingSummary[]> {
 }
 
 /**
- * Admin-confirmed match results, used only for the head-to-head tiebreaker.
- * If the table can't be read (for example row-level security blocks public
- * reads), this returns an empty list and the tiebreaker falls back to wins.
+ * Admin-confirmed match results, used for the head-to-head and points
+ * differential tiebreakers.
+ *
+ * Reads the `public_match_results` view, which exposes only the safe columns
+ * of confirmed matches (the `match_results` table itself is private). If the
+ * view has not been created yet, this returns an empty list and the tiebreak
+ * falls back to total wins.
  */
 export async function getConfirmedResults(): Promise<MatchResult[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("match_results")
-    .select("league, team_a, team_b, score_a, score_b")
-    .not("confirmed_at", "is", null);
+  // The view is not in the generated database types, so the client is widened
+  // for this one query.
+  const { data, error } = await (supabase as unknown as SupabaseClient)
+    .from("public_match_results")
+    .select("league, team_a, team_b, score_a, score_b");
 
   if (error || !data) return [];
   return data as MatchResult[];

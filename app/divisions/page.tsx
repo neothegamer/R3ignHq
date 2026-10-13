@@ -1,5 +1,11 @@
 import Link from "next/link";
-import { countByDivision, getOrganizations } from "@/lib/teams";
+import {
+  countByDivision,
+  countByLeague,
+  getOrganizations,
+  orgSlug,
+  type OrgSummary,
+} from "@/lib/teams";
 
 export const metadata = {
   title: "Divisions",
@@ -75,6 +81,22 @@ const DIVISIONS = [
 export default async function DivisionsPage() {
   const orgs = await getOrganizations();
   const counts = countByDivision(orgs, "rcml");
+  const totalTeams = countByLeague(orgs, "rcml");
+
+  // Teams on each rung of the RCML ladder (no division set = Division 6).
+  const teamsByDivision: Record<number, OrgSummary[]> = {
+    1: [],
+    2: [],
+    3: [],
+    4: [],
+    5: [],
+    6: [],
+  };
+  for (const org of orgs) {
+    if ((org.league ?? "").trim().toLowerCase() !== "rcml") continue;
+    const division = org.division ?? 6;
+    if (division >= 1 && division <= 6) teamsByDivision[division].push(org);
+  }
 
   return (
     <main id="main-content">
@@ -128,6 +150,11 @@ export default async function DivisionsPage() {
               <span className="eyebrow">Ladder</span>
               <h2>Climb from Entry to Pro</h2>
             </div>
+            <p className="lede">
+              {totalTeams === 1
+                ? "1 team registered in RCML."
+                : `${totalTeams} teams registered in RCML.`}
+            </p>
           </div>
           <div className="ladder">
             {DIVISIONS.map((d) => (
@@ -158,6 +185,28 @@ export default async function DivisionsPage() {
                     No teams yet
                   </span>
                 )}
+                {teamsByDivision[d.division].length > 0 ? (
+                  <div
+                    style={{
+                      gridColumn: "1 / -1",
+                      display: "flex",
+                      flexWrap: "wrap",
+                      gap: "0.5rem",
+                    }}
+                  >
+                    {teamsByDivision[d.division].map((team) => (
+                      <Link
+                        key={team.id}
+                        href={`/org?name=${orgSlug(team.name)}`}
+                        className="btn btn-ghost"
+                        style={{ padding: "0.3em 0.7em", fontSize: "0.75rem" }}
+                      >
+                        {team.name}
+                        {team.tag ? ` · ${team.tag}` : ""}
+                      </Link>
+                    ))}
+                  </div>
+                ) : null}
               </div>
             ))}
           </div>

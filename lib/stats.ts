@@ -1,3 +1,4 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 
 export type SiteStats = {
@@ -15,10 +16,10 @@ export async function getSiteStats(): Promise<SiteStats> {
   const [teams, players, matches] = await Promise.all([
     supabase.from("organizations").select("id", { count: "exact", head: true }),
     supabase.from("profiles").select("id", { count: "exact", head: true }),
-    supabase
-      .from("match_results")
-      .select("id", { count: "exact", head: true })
-      .not("confirmed_at", "is", null),
+    // Confirmed matches only, through the public view (the table is private).
+    (supabase as unknown as SupabaseClient)
+      .from("public_match_results")
+      .select("id", { count: "exact", head: true }),
   ]);
 
   return {

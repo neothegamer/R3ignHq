@@ -17,9 +17,12 @@ const EMPTY_MESSAGES: Record<string, string> = {
 export default function RankingsTable({
   rows,
   results,
+  seasons = {},
 }: {
   rows: LiveRanking[];
   results: MatchResult[];
+  /** Season label per league (lower-case key), for example { rcml: "Season 4" }. */
+  seasons?: Record<string, string | null>;
 }) {
   const [filter, setFilter] = useState("rcml");
 
@@ -28,7 +31,18 @@ export default function RankingsTable({
     [rows, results, filter]
   );
 
-  const hasTies = standings.some((s) => s.tied);
+  const tiebreaks = Array.from(
+    new Set(
+      standings
+        .map((s) => s.tiebreak)
+        .filter((t): t is string => Boolean(t))
+    )
+  );
+
+  const tabLabel = (key: string) => {
+    const season = seasons[key];
+    return season ? `${key.toUpperCase()} · ${season}` : key.toUpperCase();
+  };
 
   return (
     <>
@@ -38,21 +52,21 @@ export default function RankingsTable({
           aria-pressed={filter === "rcml"}
           onClick={() => setFilter("rcml")}
         >
-          RCML · Season 4
+          {tabLabel("rcml")}
         </button>
         <button
           className="filter-chip"
           aria-pressed={filter === "rfcl"}
           onClick={() => setFilter("rfcl")}
         >
-          RFCL
+          {tabLabel("rfcl")}
         </button>
         <button
           className="filter-chip"
           aria-pressed={filter === "rbsl"}
           onClick={() => setFilter("rbsl")}
         >
-          RBSL
+          {tabLabel("rbsl")}
         </button>
       </div>
 
@@ -88,7 +102,7 @@ export default function RankingsTable({
                     {row.team}
                     {row.tied ? (
                       <sup
-                        title="Tied on win % — ordered by head-to-head, then wins"
+                        title={`Tied on points and win % — ordered by ${row.tiebreak ?? "tiebreaker"}`}
                         style={{ marginLeft: "0.25rem", color: "var(--amber)" }}
                       >
                         †
@@ -118,9 +132,9 @@ export default function RankingsTable({
         {standings.length === 0
           ? filter === "rcml"
             ? "Standings appear here once results are reported."
-            : `${filter.toUpperCase()} standings open once Season 1 begins.`
-          : hasTies
-            ? "† Tied on win % — ordered by head-to-head result, then total wins."
+            : "Season not started."
+          : tiebreaks.length > 0
+            ? `† Tiebreaker: ${tiebreaks.join(", then ")}.`
             : "Standings update after every reported match."}
       </p>
     </>

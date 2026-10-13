@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getConfirmedResults, getRankings } from "@/lib/teams";
+import { getLeagueSeasons } from "@/lib/season";
 import RankingsTable from "./RankingsTable";
 
 export const metadata = {
@@ -23,10 +24,14 @@ export const metadata = {
 };
 
 export default async function RankingsPage() {
-  const [rows, results] = await Promise.all([
+  const [rows, results, leagueSeasons] = await Promise.all([
     getRankings(),
     getConfirmedResults(),
+    getLeagueSeasons(),
   ]);
+
+  const seasons: Record<string, string | null> = {};
+  for (const s of leagueSeasons) seasons[s.league.toLowerCase()] = s.seasonName;
 
   return (
     <main id="main-content">
@@ -44,15 +49,15 @@ export default async function RankingsPage() {
           <h1>Rankings</h1>
           <p>
             Standings update after every reported match. Teams are ordered by
-            win percentage; ties are broken by head-to-head result, then total
-            wins.
+            points, then win percentage; ties are broken by head-to-head
+            result, then points differential, then total wins.
           </p>
         </div>
       </div>
 
       <section>
         <div className="wrap">
-          <RankingsTable rows={rows} results={results} />
+          <RankingsTable rows={rows} results={results} seasons={seasons} />
         </div>
       </section>
     </main>

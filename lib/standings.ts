@@ -6,8 +6,10 @@
  *   1. Points (highest first)
  *   2. Win % (highest first)
  *   3. Head-to-head wins between the teams that are still tied
- *   4. Total wins
- *   5. Team name (so the order is stable)
+ *   4. Points differential (score for minus score against) over all of the
+ *      league's confirmed results, when scores are recorded
+ *   5. Total wins
+ *   6. Team name (so the order is stable)
  */
 
 export type LiveRanking = {
@@ -36,6 +38,11 @@ export type StandingRow = {
   pct: string;
   /** True when this team was tied on points and win % with another team. */
   tied: boolean;
+  /**
+   * What separated this team from the others it was tied with, for example
+   * "head-to-head". Null when the team was not tied.
+   */
+  tiebreak: string | null;
 };
 
 function norm(value: string | null | undefined) {
@@ -77,6 +84,23 @@ function headToHeadWins(group: Scored[], results: MatchResult[]) {
   return wins;
 }
 
+/** Score for minus score against, over every result involving each team. */
+function pointDifferential(group: Scored[], results: MatchResult[]) {
+  const names = new Set(group.map((g) => norm(g.team)));
+  const diff = new Map<string, number>();
+  for (const g of group) diff.set(norm(g.team), 0);
+
+  for (const r of results) {
+    const a = norm(r.team_a);
+    const b = norm(r.team_b);
+    if (a === b) continue;
+    if (r.score_a == null || r.score_b == null) continue;
+    if (names.has(a)) diff.set(a, (diff.get(a) ?? 0) + (r.score_a - r.score_b));
+    if (names.has(b)) diff.set(b, (diff.get(b) ?? 0) + (r.score_b - r.score_a));
+  }
+  return diff;
+}
+
 export function buildStandings(
   rows: LiveRanking[],
   league: string,
@@ -102,7 +126,8 @@ export function buildStandings(
 
   const leagueResults = results.filter((r) => norm(r.league) === leagueKey);
 
-  const ordered: { row: Scored; tied: boolean }[] = [];
+  const ordered: { row: Scored; tied: boolean; tiebreak: string | null }[] =
+    [];
   let i = 0;
   while (i < scored.length) {
     let j = i + 1;
@@ -116,22 +141,37 @@ export function buildStandings(
 
     const group = scored.slice(i, j);
     if (group.length === 1) {
-      ordered.push({ row: group[0], tied: false });
+      ordered.push({ row: group[0], tied: false, tiebreak: null });
     } else {
       const h2h = headToHeadWins(group, leagueResults);
+      const diff = pointDifferential(group, leagueResults);
+      const h2hOf = (g: Scored) => h2h.get(norm(g.team)) ?? 0;
+      const diffOf = (g: Scored) => diff.get(norm(g.team)) ?? 0;
+
+      const separates = (value: (g: Scored) => number) =>
+        new Set(group.map(value)).size > 1;
+      const tiebreak = separates(h2hOf)
+        ? "head-to-head"
+        : separates(diffOf)
+          ? "points differential"
+          : separates((g) => g.wins)
+            ? "total wins"
+            : "team name";
+
       group
         .sort(
           (a, b) =>
-            (h2h.get(norm(b.team)) ?? 0) - (h2h.get(norm(a.team)) ?? 0) ||
+            h2hOf(b) - h2hOf(a) ||
+            diffOf(b) - diffOf(a) ||
             b.wins - a.wins ||
             a.team.localeCompare(b.team, "en", { sensitivity: "base" })
         )
-        .forEach((row) => ordered.push({ row, tied: true }));
+        .forEach((row) => ordered.push({ row, tied: true, tiebreak }));
     }
     i = j;
   }
 
-  return ordered.map(({ row, tied }, index) => ({
+  return ordered.map(({ row, tied, tiebreak }, index) => ({
     pos: index + 1,
     team: row.team,
     tag: row.tag,
@@ -139,5 +179,6 @@ export function buildStandings(
     losses: row.losses,
     pct: formatPct(row.rate),
     tied,
+    tiebreak,
   }));
 }
