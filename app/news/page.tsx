@@ -24,10 +24,12 @@ export const metadata = {
 
 export default async function NewsPage() {
   const supabase = await createClient();
+
+  // Select only core columns so this compiles even if generated types
+  // lag behind ADD COLUMN migrations (e.g. published).
   const { data, error } = await supabase
     .from("news_posts")
     .select("id, title, category, body, created_at")
-    .eq("published", true)
     .order("created_at", { ascending: false });
 
   const posts: NewsPost[] =

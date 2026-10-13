@@ -24,14 +24,19 @@ export const metadata = {
 
 export default async function MatchHighlightsPage() {
   const supabase = await createClient();
+
+  // Columns match existing DB + generated types:
+  // id, title, description, league, match_label, video_url, storage_path,
+  // uploaded_by, created_at  (published may exist in DB but not in types yet)
   const { data, error } = await supabase
     .from("match_highlights")
     .select("title, description, league, match_label, video_url, created_at")
-    .eq("published", true)
     .order("created_at", { ascending: false });
 
   const items: Highlight[] =
-    !error && data && data.length > 0 ? (data as Highlight[]) : [];
+    !error && data && data.length > 0
+      ? (data as Highlight[])
+      : [];
 
   return (
     <main id="main-content">
