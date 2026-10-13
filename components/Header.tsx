@@ -9,7 +9,6 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
 } from "react";
-import "./r3ign-header.css";
 
 type Props = {
   /** Server-rendered account area — avoids client flash */
@@ -192,7 +191,7 @@ export default function Header({
   };
 
   const handleMenuKeyDown = (
-    event: ReactKeyboardEvent<HTMLUListElement>,
+    event: ReactKeyboardEvent<HTMLLIElement>,
     index: number,
   ) => {
     if (event.key === "Escape") {
