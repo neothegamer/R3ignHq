@@ -5848,6 +5848,33 @@ body:has(.msg-layout) .site-footer {
 }
 .hq-header .nav-account {
   display: inline-flex;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.hq-header .btn-header-signup {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0.9em 1.5em;
+  border: 0;
+  border-radius: 0;
+  background: var(--signal);
+  color: var(--paper);
+  box-shadow: none;
+  letter-spacing: 0;
+  text-decoration: none;
+}
+.hq-header .btn-header-signup:hover {
+  background: var(--signal);
+  color: var(--paper);
+  filter: brightness(0.9);
+}
+.hq-header .btn-header-signup:focus-visible {
+  outline: 2px solid var(--paper);
+  outline-offset: 3px;
 }
 .hq-header .nav-account-menu-wrap {
   position: relative;

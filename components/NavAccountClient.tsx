@@ -175,10 +175,10 @@ export default function NavAccountClient({
           <Link
             href={authenticated ? profileHref : "/signup"}
             aria-current={onProfile || onAccount ? "page" : undefined}
-            className={onProfile || onAccount ? "is-section-active" : undefined}
+            className={authenticated ? (onProfile || onAccount ? "is-section-active" : undefined) : "btn btn-header-signup"}
             onClick={() => setMobileProfileOpen(false)}
           >
-            {authenticated ? "Profile" : "Sign in"}
+            {authenticated ? "Profile" : "Sign up"}
           </Link>
           {authenticated && (
             <button
@@ -243,8 +243,8 @@ export default function NavAccountClient({
             {avatar}
           </Link>
         ) : (
-          <Link href="/signup" className="btn btn-ghost">
-            Sign in
+          <Link href="/signup" className="btn btn-header-signup">
+            Sign up
           </Link>
         )}
         {authenticated && (
