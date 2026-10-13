@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const base = "https://r3ignesports.gg";
+  const base = process.env.NEXT_PUBLIC_SITE_URL ?? "https://r3igngaming.vercel.app";
 
   const routes = [
     "",
@@ -20,11 +20,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/news",
     "/organizations",
     "/partnerships",
-    "/player-market",
     "/privacy",
     "/rankings",
     "/register",
-    "/signin",
     "/support",
     "/terms",
   ];
