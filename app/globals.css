@@ -5889,16 +5889,21 @@ body:has(.msg-layout) .site-footer {
   justify-content: center;
   width: 44px;
   height: 44px;
-  border: 1px solid var(--line);
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: none;
   color: var(--paper-dim);
   text-decoration: none;
-  transition: border-color 0.15s ease, color 0.15s ease;
+  transition: color 0.15s ease;
 }
-.hq-header a.nav-profile-link:hover,
-.hq-header a.nav-profile-link:focus-visible {
-  border-color: var(--signal);
+.hq-header a.nav-profile-link:hover {
   color: var(--paper);
-  outline: none;
+}
+.hq-header a.nav-profile-link:focus-visible {
+  color: var(--paper);
+  outline: 2px solid var(--signal);
+  outline-offset: 3px;
 }
 .hq-header .nav-profile-avatar {
   display: inline-flex;
@@ -5906,6 +5911,9 @@ body:has(.msg-layout) .site-footer {
   justify-content: center;
   width: 34px;
   height: 34px;
+  border: 0;
+  border-radius: 50%;
+  box-shadow: none;
   overflow: hidden;
   background: var(--panel-2);
   color: var(--paper);
