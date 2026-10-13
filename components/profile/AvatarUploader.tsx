@@ -9,6 +9,7 @@ import {
   type PointerEvent as ReactPointerEvent,
   type CSSProperties,
 } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useR3ignDialog } from "@/components/R3ignDialog";
 
@@ -138,6 +139,8 @@ export default function AvatarUploader({
   onAvatarChange,
 }: Props) {
   const supabase = createClient();
+  const router = useRouter();
+  const [failedAvatarUrl, setFailedAvatarUrl] = useState<string | null>(null);
   const { confirm } = useR3ignDialog();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cropViewportRef = useRef<HTMLDivElement>(null);
@@ -494,6 +497,7 @@ export default function AvatarUploader({
       profileUpdated = true;
 
       onAvatarChange(publicUrl);
+      router.refresh();
       closePreview();
       setSuccess("Profile photo updated.");
       await cleanupAvatarFolder(user.id, path.split("/").pop());
@@ -550,6 +554,7 @@ export default function AvatarUploader({
       if (updateError) throw updateError;
 
       onAvatarChange(null);
+      router.refresh();
       await cleanupAvatarFolder(user.id);
       setSuccess("Profile photo removed.");
     } catch (removeError: unknown) {
@@ -602,8 +607,12 @@ export default function AvatarUploader({
         disabled={preparing || uploading || removing}
         aria-label="Change profile photo"
       >
-        {avatarUrl ? (
-          <img src={avatarUrl} alt="" />
+        {avatarUrl && avatarUrl !== failedAvatarUrl ? (
+          <img
+            src={avatarUrl}
+            alt=""
+            onError={() => setFailedAvatarUrl(avatarUrl)}
+          />
         ) : (
           <span aria-hidden="true">
             {displayName.match(/[a-z]/i)?.[0].toUpperCase() ?? "R"}

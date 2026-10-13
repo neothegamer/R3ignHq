@@ -34,17 +34,11 @@ export default function NavAccountClient({
   const mobileProfileButtonRef = useRef<HTMLButtonElement>(null);
   const authenticated = initial !== null;
   const [mobileProfileOpen, setMobileProfileOpen] = useState(false);
-  const [mobileViewport, setMobileViewport] = useState(false);
-  useEffect(() => {
-    const media = window.matchMedia("(max-width: 1100px)");
-    const update = () => setMobileViewport(media.matches);
-    update();
-    media.addEventListener("change", update);
-    return () => media.removeEventListener("change", update);
-  }, []);
+  const [failedAvatarUrl, setFailedAvatarUrl] = useState<string | null>(null);
 
   useEffect(() => {
     setMobileProfileOpen(false);
+    setMenuOpen(false);
   }, [pathname]);
 
   useEffect(() => {
@@ -76,8 +70,14 @@ export default function NavAccountClient({
 
   const avatar = (
     <span className="nav-profile-avatar" aria-hidden="true">
-      {avatarUrl ? (
-        <img src={avatarUrl} alt="" />
+      {avatarUrl && avatarUrl !== failedAvatarUrl ? (
+        <img
+          src={avatarUrl}
+          alt=""
+          width={34}
+          height={34}
+          onError={() => setFailedAvatarUrl(avatarUrl)}
+        />
       ) : initial ? (
         initial
       ) : (
@@ -173,12 +173,12 @@ export default function NavAccountClient({
       >
         <div className="nav-group-heading">
           <Link
-            href={authenticated ? profileHref : "/account"}
+            href={authenticated ? profileHref : "/signup"}
             aria-current={onProfile || onAccount ? "page" : undefined}
             className={onProfile || onAccount ? "is-section-active" : undefined}
             onClick={() => setMobileProfileOpen(false)}
           >
-            Profile
+            {authenticated ? "Profile" : "Sign in"}
           </Link>
           {authenticated && (
             <button
@@ -232,24 +232,19 @@ export default function NavAccountClient({
   return (
     <span id="nav-account" className="nav-account">
       <div className="nav-account-menu-wrap" ref={menuRef}>
-        {mobileViewport ? (
-          <span
-            className="nav-profile-link nav-profile-link-static"
-            aria-hidden="true"
-          >
-            {avatar}
-          </span>
-        ) : (
+        {authenticated ? (
           <Link
-            href={authenticated ? profileHref : "/account"}
+            href={profileHref}
             className="nav-profile-link"
-            aria-label={
-              authenticated ? "View my public profile" : "Sign in or open my account"
-            }
-            aria-current={onProfile ? "page" : onAccount ? "page" : undefined}
+            aria-label="View my public profile"
+            aria-current={onProfile || onAccount ? "page" : undefined}
             onClick={() => setMenuOpen(false)}
           >
             {avatar}
+          </Link>
+        ) : (
+          <Link href="/signup" className="btn btn-ghost">
+            Sign in
           </Link>
         )}
         {authenticated && (
