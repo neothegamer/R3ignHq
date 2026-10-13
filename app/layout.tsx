@@ -4,6 +4,9 @@ import Header from "@/components/Header";
 import NavAccount from "@/components/NavAccount";
 import MobileSignOut from "@/components/MobileSignOut";
 import Providers from "@/components/Providers";
+import { createClient } from "@/lib/supabase/server";
+import { FEATURES } from "@/lib/features";
+import { getLeagueSeasons, toStatusItems } from "@/lib/season";
 
 export const metadata: Metadata = {
   metadataBase: new URL(
@@ -37,11 +40,35 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+/** Total events on record. Zero (or unreadable) hides the Events nav item. */
+async function countEvents(): Promise<number> {
+  try {
+    const supabase = await createClient();
+    const { count, error } = await supabase
+      .from("events")
+      .select("id", { count: "exact", head: true });
+    return error ? 0 : (count ?? 0);
+  } catch {
+    return 0;
+  }
+}
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const [seasons, eventCount] = await Promise.all([
+    getLeagueSeasons(),
+    countEvents(),
+  ]);
+
+  const hiddenHrefs: string[] = [];
+  if (!FEATURES.events || eventCount === 0) hiddenHrefs.push("/events");
+  if (!FEATURES.brackets) hiddenHrefs.push("/brackets");
+  if (!FEATURES.highlights) hiddenHrefs.push("/match-highlights");
+  if (!FEATURES.merch) hiddenHrefs.push("/merch");
+
   return (
     <html lang="en">
       <body>
@@ -53,6 +80,8 @@ export default function RootLayout({
             accountSlot={<NavAccount />}
             mobileAccountSlot={<NavAccount mobileMenu />}
             mobileSignOutSlot={<MobileSignOut />}
+            statusItems={toStatusItems(seasons)}
+            hiddenHrefs={hiddenHrefs}
           />
           {children}
         </Providers>

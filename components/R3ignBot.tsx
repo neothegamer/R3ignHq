@@ -10,6 +10,7 @@ import {
   type FormEvent,
   type ReactNode,
 } from "react";
+import { FEATURES } from "@/lib/features";
 
 type BotMessage = { id: number; role: "user" | "bot"; text: string };
 type BotContextValue = { openBot: () => void };
@@ -18,11 +19,12 @@ const BotContext = createContext<BotContextValue | null>(null);
 
 /**
  * The bot is hidden until it is connected to a real service.
- * To turn it on, set NEXT_PUBLIC_CHATBOT_ENABLED=true (in .env.local and in
- * the Vercel project settings) and replace sendMessageToBot below with a real
- * API call.
+ * The single switch lives in lib/features.ts (FEATURES.chatbot), which reads
+ * NEXT_PUBLIC_CHATBOT_ENABLED. To turn it on, set that variable to "true" in
+ * .env.local and in the Vercel project settings, then replace
+ * sendMessageToBot below with a real API call.
  */
-const BOT_ENABLED = process.env.NEXT_PUBLIC_CHATBOT_ENABLED === "true";
+const BOT_ENABLED = FEATURES.chatbot;
 
 async function sendMessageToBot(_message: string): Promise<string> {
   // Replace this placeholder with the R3IGN bot service when its API exists.

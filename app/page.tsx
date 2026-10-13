@@ -3,6 +3,71 @@ import Footer from "@/components/Footer";
 import HeroVideo from "@/components/HeroVideo";
 import { createClient } from "@/lib/supabase/server";
 import { getSiteStats, statValue } from "@/lib/stats";
+import {
+  getLeagueSeasons,
+  getSeasonCards,
+  type LeagueSeason,
+  type SeasonCard,
+} from "@/lib/season";
+import {
+  getConfirmedResults,
+  getOrganizations,
+  getRankings,
+} from "@/lib/teams";
+import { buildStandings } from "@/lib/standings";
+
+const LEAGUE_INFO = [
+  {
+    code: "RCML",
+    name: "R3IGN COD:Mobile Multiplayer League",
+    blurb: "Competitive 5v5 Call of Duty Mobile Multiplayer.",
+  },
+  {
+    code: "RFCL",
+    name: "R3IGN Free Fire Clash Squad League",
+    blurb: "Competitive Free Fire Clash Squad operations.",
+  },
+  {
+    code: "RBSL",
+    name: "R3IGN Blood Strike Squad Fight League",
+    blurb: "Competitive Blood Strike Squad Fight operations.",
+  },
+] as const;
+
+/** Badge on a league card, taken from the one season-status value. */
+function leagueStamp(season: LeagueSeason | undefined) {
+  switch (season?.status) {
+    case "in_progress":
+      return { label: "In Progress", cls: "stamp-live" };
+    case "completed":
+      return { label: "Complete", cls: "stamp-active" };
+    case "upcoming":
+      return { label: "Starting Soon", cls: "stamp-soon" };
+    case "unknown":
+      return { label: "Active", cls: "stamp-active" };
+    default:
+      return { label: "Coming Soon", cls: "stamp-soon" };
+  }
+}
+
+/** Text lines on a champion card, taken from the same season-status value. */
+function championCopy(card: SeasonCard) {
+  switch (card.status) {
+    case "completed":
+      return {
+        name: card.champion ?? "To Be Announced",
+        note: "Season complete",
+      };
+    case "in_progress":
+      return { name: "To Be Determined", note: "Season in progress" };
+    case "upcoming":
+      return { name: "To Be Determined", note: "Season starting soon" };
+    case "unknown":
+      return { name: "To Be Determined", note: "" };
+    default:
+      return { name: "To Be Determined", note: "Season not yet started" };
+  }
+}
 
 type FeaturedPost = {
   id: string;
@@ -40,7 +105,20 @@ export default async function HomePage() {
 
   const featured: FeaturedPost[] =
     data && data.length > 0 ? (data as FeaturedPost[]) : [];
-  const stats = await getSiteStats();
+  const [stats, seasons, seasonCards, orgs, rankingRows, results] =
+    await Promise.all([
+      getSiteStats(),
+      getLeagueSeasons(),
+      getSeasonCards(),
+      getOrganizations(),
+      getRankings(),
+      getConfirmedResults(),
+    ]);
+
+  const topTeams = buildStandings(rankingRows, "rcml", results).slice(0, 5);
+  const logoByTeam = new Map(
+    orgs.map((o) => [o.name.trim().toLowerCase(), o.logo_url])
+  );
 
   return (
     <>
@@ -250,58 +328,26 @@ export default async function HomePage() {
             </Link>
           </div>
           <div className="dossier-grid">
-            <div className="dossier">
-              <div className="dossier-head">
-                <span>RCML</span>
-                <span className="stamp stamp-live">Active</span>
-              </div>
-              <div className="dossier-body">
-                <h3>R3IGN COD:Mobile Multiplayer League</h3>
-                <p>Competitive 5v5 Call of Duty Mobile Multiplayer.</p>
-              </div>
-              <div className="dossier-foot">
-                <span>Season 4</span>
-                <Link href="/leagues">View League →</Link>
-              </div>
-            </div>
-            <div className="dossier">
-              <div className="dossier-head">
-                <span>RFCL</span>
-                <span className="stamp stamp-soon">Coming Soon</span>
-              </div>
-              <div className="dossier-body">
-                <h3>R3IGN Free Fire Clash Squad League</h3>
-                <p>Competitive Free Fire Clash Squad operations.</p>
-                <div
-                  className="countdown-inline"
-                  data-countdown="2026-10-15T00:00:00"
-                  data-countdown-label="Registration opens in"
-                ></div>
-              </div>
-              <div className="dossier-foot">
-                <span>Season TBA</span>
-                <Link href="/leagues">View League →</Link>
-              </div>
-            </div>
-            <div className="dossier">
-              <div className="dossier-head">
-                <span>RBSL</span>
-                <span className="stamp stamp-soon">Coming Soon</span>
-              </div>
-              <div className="dossier-body">
-                <h3>R3IGN Blood Strike Squad Fight League</h3>
-                <p>Competitive Blood Strike Squad Fight operations.</p>
-                <div
-                  className="countdown-inline"
-                  data-countdown="2026-11-01T00:00:00"
-                  data-countdown-label="Registration opens in"
-                ></div>
-              </div>
-              <div className="dossier-foot">
-                <span>Season TBA</span>
-                <Link href="/leagues">View League →</Link>
-              </div>
-            </div>
+            {LEAGUE_INFO.map((info) => {
+              const season = seasons.find((x) => x.league === info.code);
+              const stamp = leagueStamp(season);
+              return (
+                <div className="dossier" key={info.code}>
+                  <div className="dossier-head">
+                    <span>{info.code}</span>
+                    <span className={`stamp ${stamp.cls}`}>{stamp.label}</span>
+                  </div>
+                  <div className="dossier-body">
+                    <h3>{info.name}</h3>
+                    <p>{info.blurb}</p>
+                  </div>
+                  <div className="dossier-foot">
+                    <span>{season?.seasonName ?? "Season TBA"}</span>
+                    <Link href="/leagues">View League →</Link>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -318,68 +364,47 @@ export default async function HomePage() {
               View All Organizations
             </Link>
           </div>
-          <div className="team-grid">
-            <div className="team-card">
-              <div className="team-rank">RCML · #1</div>
-              <div className="team-badge">AE</div>
-              <h3>Aether Esports</h3>
-              <div className="team-meta">
-                <span>W10–L1</span>
-                <span>90.9%</span>
-              </div>
-              <div className="win-bar">
-                <span style={{ width: "90.9%" }}></span>
-              </div>
+          {topTeams.length === 0 ? (
+            <p className="empty-state">
+              Standings will appear here once the first season begins.
+            </p>
+          ) : (
+            <div className="team-grid">
+              {topTeams.map((team) => {
+                const logo = logoByTeam.get(team.team.trim().toLowerCase());
+                return (
+                  <div className="team-card" key={team.team}>
+                    <div className="team-rank">RCML · #{team.pos}</div>
+                    <div className="team-badge">
+                      {logo ? (
+                        <img
+                          src={logo}
+                          alt={`${team.team} logo`}
+                          style={{
+                            width: "100%",
+                            height: "100%",
+                            objectFit: "cover",
+                          }}
+                        />
+                      ) : (
+                        team.tag || team.team.slice(0, 2).toUpperCase()
+                      )}
+                    </div>
+                    <h3>{team.team}</h3>
+                    <div className="team-meta">
+                      <span>
+                        W{team.wins}–L{team.losses}
+                      </span>
+                      <span>{team.pct}</span>
+                    </div>
+                    <div className="win-bar">
+                      <span style={{ width: team.pct }}></span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-            <div className="team-card">
-              <div className="team-rank">RCML · #2</div>
-              <div className="team-badge">SX</div>
-              <h3>Siroxx</h3>
-              <div className="team-meta">
-                <span>W10–L1</span>
-                <span>90.9%</span>
-              </div>
-              <div className="win-bar">
-                <span style={{ width: "90.9%" }}></span>
-              </div>
-            </div>
-            <div className="team-card">
-              <div className="team-rank">RCML · #3</div>
-              <div className="team-badge">IN</div>
-              <h3>Infinite</h3>
-              <div className="team-meta">
-                <span>W9–L2</span>
-                <span>81.8%</span>
-              </div>
-              <div className="win-bar">
-                <span style={{ width: "81.8%" }}></span>
-              </div>
-            </div>
-            <div className="team-card">
-              <div className="team-rank">RCML · #4</div>
-              <div className="team-badge">EO</div>
-              <h3>Eleventh Order</h3>
-              <div className="team-meta">
-                <span>W8–L3</span>
-                <span>72.7%</span>
-              </div>
-              <div className="win-bar">
-                <span style={{ width: "72.7%" }}></span>
-              </div>
-            </div>
-            <div className="team-card">
-              <div className="team-rank">RCML · #5</div>
-              <div className="team-badge">SE</div>
-              <h3>Seven Esports</h3>
-              <div className="team-meta">
-                <span>W7–L4</span>
-                <span>63.6%</span>
-              </div>
-              <div className="win-bar">
-                <span style={{ width: "63.6%" }}></span>
-              </div>
-            </div>
-          </div>
+          )}
         </div>
       </section>
 
@@ -435,30 +460,22 @@ export default async function HomePage() {
             </p>
           </div>
           <div className="champions-rail">
-            <div className="champion-card">
-              <div className="season">RCML · Season 3</div>
-              <div className="title">Champion</div>
-              <h3>7SIN Esports</h3>
-              <div className="date">March 2026</div>
-            </div>
-            <div className="champion-card">
-              <div className="season">RCML · Season 4</div>
-              <div className="title">Champion</div>
-              <h3>To Be Determined</h3>
-              <div className="date">Season in progress</div>
-            </div>
-            <div className="champion-card">
-              <div className="season">RFCL · Season 1</div>
-              <div className="title">Champion</div>
-              <h3>To Be Determined</h3>
-              <div className="date">Season not yet started</div>
-            </div>
-            <div className="champion-card">
-              <div className="season">RBSL · Season 1</div>
-              <div className="title">Champion</div>
-              <h3>To Be Determined</h3>
-              <div className="date">Season not yet started</div>
-            </div>
+            {seasonCards.map((card) => {
+              const copy = championCopy(card);
+              return (
+                <div
+                  className="champion-card"
+                  key={`${card.league}-${card.name ?? "first"}`}
+                >
+                  <div className="season">
+                    {card.league} · {card.name ?? "First season"}
+                  </div>
+                  <div className="title">Champion</div>
+                  <h3>{copy.name}</h3>
+                  {copy.note ? <div className="date">{copy.note}</div> : null}
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>

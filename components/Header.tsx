@@ -17,9 +17,18 @@ type Props = {
   mobileAccountSlot: ReactNode;
   /** Sign-out action shown after the mobile navigation groups */
   mobileSignOutSlot: ReactNode;
+  /** League ticker lines, built from real season data on the server */
+  statusItems: StatusItem[];
+  /** Nav links to hide (switched off in lib/features.ts or no content yet) */
+  hiddenHrefs: string[];
 };
 
-const NAV_GROUPS = [
+export type StatusItem = { league: string; text: string; live: boolean };
+
+type NavChild = { label: string; href: string };
+type NavGroup = { label: string; href: string; children: NavChild[] };
+
+const NAV_GROUPS: NavGroup[] = [
   {
     label: "Home",
     href: "/",
@@ -42,6 +51,7 @@ const NAV_GROUPS = [
       { label: "Highlights", href: "/match-highlights" },
       { label: "News", href: "/news" },
       { label: "Community", href: "/community" },
+      { label: "Merch", href: "/merch" },
     ],
   },
   {
@@ -49,13 +59,6 @@ const NAV_GROUPS = [
     href: "/organizations",
     children: [{ label: "Player Market", href: "/player-market" }],
   },
-] as const;
-
-const STATUS_ITEMS = [
-  { league: "RCML", text: "Season 4 / Division 1 in progress", live: true },
-  { league: "RFCL", text: "Registration opening soon", live: false },
-  { league: "RBSL", text: "Registration opening soon", live: false },
-  { league: "RCML", text: "Season 4 / 5 teams competing", live: false },
 ];
 
 /* Inline icons — no icon package needed. */
@@ -94,8 +97,21 @@ export default function Header({
   accountSlot,
   mobileAccountSlot,
   mobileSignOutSlot,
+  statusItems,
+  hiddenHrefs,
 }: Props) {
   const pathname = usePathname();
+  const hidden = new Set(hiddenHrefs);
+  const groups: NavGroup[] = NAV_GROUPS.map((group) => {
+    const children = group.children.filter((child) => !hidden.has(child.href));
+    if (!hidden.has(group.href)) return { ...group, children };
+    // The group's own page is hidden (for example Events with no events yet):
+    // keep the menu, point it at its first visible page and rename it.
+    const first = children[0];
+    return first
+      ? { label: "Media", href: first.href, children }
+      : { ...group, children };
+  }).filter((group) => !hidden.has(group.href));
   const headerRef = useRef<HTMLElement>(null);
   const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const toggleRefs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -224,7 +240,7 @@ export default function Header({
 
   const statusTrack = (key: string) => (
     <span className="hq-status-track" key={key} aria-hidden="true">
-      {STATUS_ITEMS.map((item) => (
+      {statusItems.map((item) => (
         <span className="hq-status-item" key={`${key}-${item.league}-${item.text}`}>
           <span className="hq-status-league">{item.league}</span>
           <span>{item.text}</span>
@@ -265,7 +281,7 @@ export default function Header({
         >
           <ul className="hq-nav-list">
             {mobileAccountSlot}
-            {NAV_GROUPS.map((group, index) => {
+            {groups.map((group, index) => {
               const active =
                 isActive(group.href) ||
                 group.children.some((child) => isActive(child.href));
