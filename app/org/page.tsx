@@ -255,13 +255,11 @@ async function loadLiveOrg(
 
   const { data, error } = await supabase
     .from("organizations")
-    .select(
-      "id, name, tag, league, division, region, description, discord_url, twitch_url, twitter_url"
-    );
+    .select("id, name, tag, league, division, region");
 
   if (error || !data || data.length === 0) return { live: false };
 
-  const row = (data as OrgRow[]).find((o) => slugify(o.name) === slug);
+  const row = data.find((o) => slugify(o.name) === slug);
   if (!row) return { live: true };
 
   const { data: memberRows, error: membersError } = await supabase
@@ -346,11 +344,11 @@ async function loadLiveOrg(
       region: row.region ?? "",
       record: "",
       pct: "",
-      description: row.description?.trim() || "",
+      description: "",
       roster: "",
-      discord_url: row.discord_url?.trim() || "",
-      twitch_url: row.twitch_url?.trim() || "",
-      twitter_url: row.twitter_url?.trim() || "",
+      discord_url: "",
+      twitch_url: "",
+      twitter_url: "",
       records,
     },
   };
