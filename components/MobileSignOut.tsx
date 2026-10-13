@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { getServerAuth } from "@/lib/supabase/auth";
 
 /** Render the mobile sign-out action separately from the profile controls. */
@@ -8,12 +7,14 @@ export default async function MobileSignOut() {
 
   return (
     <li className="mobile-signout-nav-item">
-      <Link
-        href="/auth/signout"
-        className="btn btn-primary mobile-profile-signout"
-      >
-        Sign out
-      </Link>
+      <form action="/auth/signout" method="post">
+        <button
+          type="submit"
+          className="btn btn-primary mobile-profile-signout"
+        >
+          Sign out
+        </button>
+      </form>
     </li>
   );
 }

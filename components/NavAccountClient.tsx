@@ -297,13 +297,15 @@ export default function NavAccountClient({
                 >
                   Account settings
                 </Link>
-                <Link
-                  href="/auth/signout"
-                  role="menuitem"
-                  onClick={() => setMenuOpen(false)}
-                >
-                  Sign out
-                </Link>
+                <form action="/auth/signout" method="post" role="none">
+                  <button
+                    type="submit"
+                    role="menuitem"
+                    className="nav-account-menu-signout"
+                  >
+                    Sign out
+                  </button>
+                </form>
               </div>
             )}
           </>
