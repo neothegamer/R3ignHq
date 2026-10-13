@@ -11,15 +11,6 @@ import type { Database } from "@/lib/database.types";
  * so the rest of the site still loads.
  */
 export async function updateSession(request: NextRequest) {
-  // Temporary debug – remove once the env issue is fixed
-  console.log("=== SUPABASE ENV CHECK ===");
-  console.log("URL:", process.env.NEXT_PUBLIC_SUPABASE_URL);
-  console.log(
-    "KEY starts with:",
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.slice(0, 25)
-  );
-  console.log("==========================");
-
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient<Database>(
