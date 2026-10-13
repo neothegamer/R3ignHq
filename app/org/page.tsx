@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import OrgIdentity from "@/components/org/OrgIdentity";
 
 export const metadata: Metadata = {
-  title: "Team Profile · R3IGN HQ",
+  title: "Team Profile",
   description:
     "Team and organization profile — roster, league record, and socials.",
   openGraph: {
@@ -53,6 +53,10 @@ type OrgRow = {
   league: string;
   division: number | null;
   region: string | null;
+  description?: string | null;
+  discord_url?: string | null;
+  twitch_url?: string | null;
+  twitter_url?: string | null;
 };
 
 type RankingRow = {
@@ -251,7 +255,9 @@ async function loadLiveOrg(
 
   const { data, error } = await supabase
     .from("organizations")
-    .select("id, name, tag, league, division, region");
+    .select(
+      "id, name, tag, league, division, region, description, discord_url, twitch_url, twitter_url"
+    );
 
   if (error || !data || data.length === 0) return { live: false };
 
@@ -340,11 +346,11 @@ async function loadLiveOrg(
       region: row.region ?? "",
       record: "",
       pct: "",
-      description: "",
+      description: row.description?.trim() || "",
       roster: "",
-      discord_url: "",
-      twitch_url: "",
-      twitter_url: "",
+      discord_url: row.discord_url?.trim() || "",
+      twitch_url: row.twitch_url?.trim() || "",
+      twitter_url: row.twitter_url?.trim() || "",
       records,
     },
   };

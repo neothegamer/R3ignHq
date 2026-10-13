@@ -1,5 +1,6 @@
 import Link from "next/link";
-import NewsGrid from "./NewsGrid";
+import { createClient } from "@/lib/supabase/server";
+import NewsGrid, { type NewsPost } from "./NewsGrid";
 
 export const metadata = {
   title: "News",
@@ -21,7 +22,17 @@ export const metadata = {
   },
 };
 
-export default function NewsPage() {
+export default async function NewsPage() {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("news_posts")
+    .select("id, title, category, body, created_at")
+    .eq("published", true)
+    .order("created_at", { ascending: false });
+
+  const posts: NewsPost[] =
+    !error && data && data.length > 0 ? (data as NewsPost[]) : [];
+
   return (
     <main id="main-content">
       <div className="page-header">
@@ -45,7 +56,7 @@ export default function NewsPage() {
 
       <section>
         <div className="wrap">
-          <NewsGrid />
+          <NewsGrid posts={posts} live={posts.length > 0} />
         </div>
       </section>
     </main>

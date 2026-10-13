@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import SiteSearch from "@/components/SiteSearch";
 
-type NewsPost = {
+export type NewsPost = {
   id: string;
   title: string;
   category: string;
@@ -76,34 +76,63 @@ function excerpt(body: string) {
   return text.length > 140 ? text.slice(0, 140).trim() + "…" : text;
 }
 
-export default function NewsGrid() {
+type Props = {
+  posts?: NewsPost[];
+  live?: boolean;
+};
+
+export default function NewsGrid({ posts = [], live = false }: Props) {
   const [filter, setFilter] = useState("all");
   const [query, setQuery] = useState("");
 
+  const source = live && posts.length > 0 ? posts : SAMPLE_NEWS;
+
   const visible = useMemo(
     () =>
-      SAMPLE_NEWS.filter((post) => {
+      source.filter((post) => {
         const matchesCategory =
           filter === "all" || CATEGORY_TAG[post.category] === filter;
-        const searchable = `${post.title} ${post.category} ${post.body}`.toLowerCase();
-        return matchesCategory && searchable.includes(query.trim().toLowerCase());
+        const searchable =
+          `${post.title} ${post.category} ${post.body}`.toLowerCase();
+        return (
+          matchesCategory && searchable.includes(query.trim().toLowerCase())
+        );
       }),
-    [filter, query]
+    [source, filter, query]
   );
 
   return (
     <>
-      <p
-        style={{
-          fontFamily: "var(--f-mono)",
-          fontSize: "0.78rem",
-          color: "var(--steel)",
-          marginBottom: "1rem",
-        }}
-      >
-        Showing sample stories — connect a news_posts table to go live.
-      </p>
-      <SiteSearch value={query} onChange={setQuery} placeholder="Search news…" />
+      {!live && (
+        <p
+          style={{
+            fontFamily: "var(--f-mono)",
+            fontSize: "0.78rem",
+            color: "var(--steel)",
+            marginBottom: "1rem",
+          }}
+        >
+          Showing sample stories — run the news_posts migration and insert rows
+          to go live.
+        </p>
+      )}
+      {live && (
+        <p
+          style={{
+            fontFamily: "var(--f-mono)",
+            fontSize: "0.78rem",
+            color: "var(--steel)",
+            marginBottom: "1rem",
+          }}
+        >
+          Showing live posts from Supabase.
+        </p>
+      )}
+      <SiteSearch
+        value={query}
+        onChange={setQuery}
+        placeholder="Search news…"
+      />
       <div className="filter-bar">
         <button
           className="filter-chip"
@@ -158,7 +187,6 @@ export default function NewsGrid() {
               <p>{excerpt(post.body)}</p>
               <div className="news-foot">
                 <span>{fmtDate(post.created_at)}</span>
-                {/* Sample posts hide "Read More" — real posts will link to detail later */}
               </div>
             </div>
           </div>

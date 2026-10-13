@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-type Highlight = {
+export type Highlight = {
   title: string;
   description: string;
   league: string;
@@ -85,11 +85,17 @@ function ShareButton({ h }: { h: Highlight }) {
   );
 }
 
-export default function HighlightsGrid() {
+type Props = {
+  items?: Highlight[];
+  live?: boolean;
+};
+
+export default function HighlightsGrid({ items = [], live = false }: Props) {
   const [filter, setFilter] = useState("all");
 
+  const source = live && items.length > 0 ? items : SAMPLE;
   const visible =
-    filter === "all" ? SAMPLE : SAMPLE.filter((h) => h.league === filter);
+    filter === "all" ? source : source.filter((h) => h.league === filter);
 
   return (
     <>
@@ -101,7 +107,9 @@ export default function HighlightsGrid() {
           marginBottom: "1rem",
         }}
       >
-        Showing sample highlights — upload real clips to go live.
+        {live
+          ? "Showing live highlights from Supabase."
+          : "Showing sample highlights — run the match_highlights migration and upload clips to go live."}
       </p>
       <div className="filter-bar">
         {(["all", "rcml", "rfcl", "rbsl"] as const).map((v) => (

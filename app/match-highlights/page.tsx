@@ -1,5 +1,6 @@
 import Link from "next/link";
-import HighlightsGrid from "./HighlightsGrid";
+import { createClient } from "@/lib/supabase/server";
+import HighlightsGrid, { type Highlight } from "./HighlightsGrid";
 
 export const metadata = {
   title: "Match Highlights",
@@ -21,7 +22,17 @@ export const metadata = {
   },
 };
 
-export default function MatchHighlightsPage() {
+export default async function MatchHighlightsPage() {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("match_highlights")
+    .select("title, description, league, match_label, video_url, created_at")
+    .eq("published", true)
+    .order("created_at", { ascending: false });
+
+  const items: Highlight[] =
+    !error && data && data.length > 0 ? (data as Highlight[]) : [];
+
   return (
     <main id="main-content">
       <div className="page-header">
@@ -45,7 +56,7 @@ export default function MatchHighlightsPage() {
 
       <section className="section-tight">
         <div className="wrap">
-          <HighlightsGrid />
+          <HighlightsGrid items={items} live={items.length > 0} />
         </div>
       </section>
     </main>
