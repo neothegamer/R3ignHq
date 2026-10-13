@@ -628,6 +628,10 @@ export type Database = {
       organizations: {
         Row: {
           created_at: string | null
+          description: string | null
+          discord_url: string | null
+          twitch_url: string | null
+          twitter_url: string | null
           division: number | null
           id: string
           league: string
@@ -639,6 +643,10 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          description?: string | null
+          discord_url?: string | null
+          twitch_url?: string | null
+          twitter_url?: string | null
           division?: number | null
           id?: string
           league: string
@@ -650,6 +658,10 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          description?: string | null
+          discord_url?: string | null
+          twitch_url?: string | null
+          twitter_url?: string | null
           division?: number | null
           id?: string
           league?: string
