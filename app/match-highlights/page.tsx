@@ -28,7 +28,6 @@ export default async function MatchHighlightsPage() {
   const { data, error } = await supabase
     .from("match_highlights")
     .select("title, description, league, match_label, video_url, created_at")
-    .eq("published", true)
     .order("created_at", { ascending: false });
 
   const items: Highlight[] =
