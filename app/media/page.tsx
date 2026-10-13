@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "Media · R3IGN HQ",
+  title: "Media",
   description:
     "Brand assets, match highlights, and press resources for R3IGN HQ.",
   openGraph: {

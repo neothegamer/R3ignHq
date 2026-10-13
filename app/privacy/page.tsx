@@ -1,5 +1,5 @@
 export const metadata = {
-  title: "Privacy Policy · R3IGN HQ",
+  title: "Privacy Policy",
   description:
     "The R3IGN Privacy Policy explaining how account, competition, verification, and support information is handled.",
 };

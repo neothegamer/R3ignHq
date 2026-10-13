@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "Divisions · R3IGN HQ",
+  title: "Divisions",
   description:
     "The R3IGN six-division ladder with promotion and relegation, from Entry to the Pro League.",
   openGraph: {

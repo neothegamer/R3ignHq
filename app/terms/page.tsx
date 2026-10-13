@@ -1,5 +1,5 @@
 export const metadata = {
-  title: "Terms & Conditions · R3IGN HQ",
+  title: "Terms & Conditions",
   description:
     "The R3IGN Terms & Conditions governing accounts, league participation, competition conduct, and platform use.",
 };

@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "Awards · R3IGN HQ",
+  title: "Awards",
   description:
     "R3IGN HQ's annual awards and Hall of Champions, recognizing top players and organizations each season.",
   openGraph: {

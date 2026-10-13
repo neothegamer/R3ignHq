@@ -1,5 +1,5 @@
 export const metadata = {
-  title: "Community · R3IGN HQ",
+  title: "Community",
   description:
     "Join R3IGN HQ's Discord, Instagram, TikTok, and Facebook channels for match updates and league chat.",
 };

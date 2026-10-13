@@ -2,7 +2,7 @@ import Link from "next/link";
 import NewsGrid from "./NewsGrid";
 
 export const metadata = {
-  title: "News · R3IGN HQ",
+  title: "News",
   description:
     "League updates, match recaps, and announcements from R3IGN HQ Esports.",
   openGraph: {

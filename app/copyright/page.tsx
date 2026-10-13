@@ -1,5 +1,5 @@
 export const metadata = {
-  title: "Copyright Policy · R3IGN HQ",
+  title: "Copyright Policy",
   description:
     "R3IGN HQ Copyright Policy covering intellectual property, user-submitted content, takedown notices, and counter-notifications.",
 };

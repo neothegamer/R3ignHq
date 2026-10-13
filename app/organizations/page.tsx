@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import OrgsGrid, { type OrgRow, type RankingRow } from "./OrgsGrid";
 
 export const metadata = {
-  title: "Organizations · R3IGN HQ",
+  title: "Organizations",
   description:
     "Browse the organizations and rosters competing across R3IGN HQ.",
   openGraph: {
@@ -42,6 +42,14 @@ export default async function OrganizationsPage() {
       ? (rankingsRes.data as RankingRow[])
       : [];
 
+  const orgCount = orgs.length;
+  const eyebrowText =
+    orgCount >= 50
+      ? "50+ Registered Orgs"
+      : orgCount > 0
+        ? `${orgCount} Registered Org${orgCount === 1 ? "" : "s"}`
+        : "Registered Organizations";
+
   return (
     <main id="main-content">
       <div className="page-header">
@@ -53,7 +61,7 @@ export default async function OrganizationsPage() {
             className="eyebrow"
             style={{ marginTop: "1rem", display: "inline-flex" }}
           >
-            50+ Registered Orgs
+            {eyebrowText}
           </span>
           <h1>Organizations</h1>
           <p>

@@ -1,5 +1,5 @@
 export const metadata = {
-  title: "Partnerships · R3IGN HQ",
+  title: "Partnerships",
   description: "Sponsorship and partnership opportunities with R3IGN HQ.",
 };
 

@@ -1,7 +1,7 @@
 import Footer from "@/components/Footer";
 
 export const metadata = {
-  title: "Support · R3IGN HQ",
+  title: "Support",
   description:
     "Get help with R3IGN HQ team registration, league rules, and match disputes.",
 };

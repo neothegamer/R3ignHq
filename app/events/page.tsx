@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import EventsClient, { type EventItem } from "./EventsClient";
 
 export const metadata = {
-  title: "Events · R3IGN HQ",
+  title: "Events",
   description:
     "Upcoming R3IGN matches and events — add any date straight to your calendar.",
   openGraph: {

@@ -2,7 +2,7 @@ import Link from "next/link";
 import HighlightsGrid from "./HighlightsGrid";
 
 export const metadata = {
-  title: "Match Highlights · R3IGN HQ",
+  title: "Match Highlights",
   description:
     "Watch screen-recorded highlights from R3IGN HQ league matches.",
   openGraph: {

@@ -3,7 +3,7 @@ import Link from "next/link";
 import AuthForm from "@/components/auth/AuthForm";
 
 export const metadata: Metadata = {
-  title: "Create Account · R3IGN HQ",
+  title: "Create Account",
   description: "Create your R3IGN HQ account with email or Discord.",
   openGraph: {
     title: "Create Account · R3IGN HQ",

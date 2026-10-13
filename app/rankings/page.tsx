@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import RankingsTable, { type LiveRanking } from "./RankingsTable";
 
 export const metadata = {
-  title: "Rankings · R3IGN HQ",
+  title: "Rankings",
   description:
     "Live R3IGN HQ league standings, win-loss records, and win percentage across RCML, RFCL, and RBSL.",
   openGraph: {

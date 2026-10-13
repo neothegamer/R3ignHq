@@ -1,6 +1,6 @@
 
 export const metadata = {
-  title: "Guide · R3IGN HQ",
+  title: "Guide",
   description:
     "A getting-started guide to R3IGN HQ registration, divisions, and rankings.",
 };

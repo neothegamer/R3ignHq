@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "Tournament Bracket · R3IGN HQ",
+  title: "Tournament Bracket",
   description: "Live playoff bracket for R3IGN HQ tournaments.",
   openGraph: {
     title: "Tournament Bracket · R3IGN HQ",
@@ -166,7 +166,6 @@ function Bracket({ matches }: { matches: Match[] }) {
         r.matches.sort((a, b) => a.match_order - b.match_order);
         const isFinal = rn === maxRound;
 
-        // Group into pairs for clean tree connectors
         const pairs: Match[][] = [];
         for (let i = 0; i < r.matches.length; i += 2) {
           pairs.push(r.matches.slice(i, i + 2));

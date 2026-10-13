@@ -2,7 +2,7 @@ import Link from "next/link";
 import LeagueFilter from "./LeagueFilter";
 
 export const metadata = {
-  title: "Leagues · R3IGN HQ",
+  title: "Leagues",
   description:
     "Explore R3IGN's mobile esports leagues: RCML (Call of Duty: Mobile), RFCL (Free Fire), and RBSL (Blood Strike).",
   openGraph: {

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import RegisterForm from "@/components/auth/RegisterForm";
 
 export const metadata: Metadata = {
-  title: "Register Your Team · R3IGN HQ",
+  title: "Register Your Team",
   description: "Submit your roster for placement in an R3IGN mobile esports league.",
   openGraph: {
     title: "Register Your Team · R3IGN HQ",

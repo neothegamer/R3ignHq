@@ -1,8 +1,7 @@
-
 import Footer from "@/components/Footer";
 
 export const metadata = {
-  title: "About · R3IGN HQ",
+  title: "About",
   description:
     "R3IGN HQ is a competitive esports ecosystem built on professional league operations, fair competition, and accurate rankings.",
 };
