@@ -1,8 +1,76 @@
 import Link from "next/link";
 import Footer from "@/components/Footer";
 import HeroVideo from "@/components/HeroVideo";
+import { createClient } from "@/lib/supabase/server";
 
-export default function HomePage() {
+type FeaturedPost = {
+  id: string;
+  title: string;
+  category: string;
+  body: string;
+  created_at: string;
+};
+
+function fmtDate(iso: string) {
+  try {
+    return new Date(iso).toLocaleDateString(undefined, {
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    });
+  } catch {
+    return "";
+  }
+}
+
+function excerpt(body: string) {
+  const text = (body || "").replace(/\s+/g, " ").trim();
+  return text.length > 140 ? text.slice(0, 140).trim() + "…" : text;
+}
+
+const FALLBACK_NEWS: FeaturedPost[] = [
+  {
+    id: "sample-1",
+    title: "RCML Season 4 enters its final stretch",
+    category: "League Update",
+    body: "Division 1 heads into the closing weeks with Aether Esports and Siroxx locked in a tight race for the top seed.",
+    created_at: "2026-05-28T00:00:00Z",
+  },
+  {
+    id: "sample-2",
+    title: "RFCL registration window opens next month",
+    category: "Announcement",
+    body: "Free Fire Clash Squad league registration is scheduled to open soon — get your roster ready for Season 1.",
+    created_at: "2026-05-28T00:00:00Z",
+  },
+  {
+    id: "sample-3",
+    title: "Aether Esports edges Siroxx in a top-of-table clash",
+    category: "Match Recap",
+    body: "A close series decided in the final map keeps both teams at the top of the RCML Season 4 standings.",
+    created_at: "2026-05-28T00:00:00Z",
+  },
+  {
+    id: "sample-4",
+    title: "Community continues to grow across RCML",
+    category: "Community",
+    body: "More players and organizations are joining the ecosystem as Season 4 heads toward playoffs.",
+    created_at: "2026-05-28T00:00:00Z",
+  },
+];
+
+export default async function HomePage() {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("news_posts")
+    .select("id, title, category, body, created_at")
+    .eq("published", true)
+    .order("created_at", { ascending: false })
+    .limit(4);
+
+  const featured: FeaturedPost[] =
+    data && data.length > 0 ? (data as FeaturedPost[]) : FALLBACK_NEWS;
+
   return (
     <>
       <main id="main-content">
@@ -357,74 +425,22 @@ export default function HomePage() {
             </Link>
           </div>
           <div className="news-grid">
-            <div className="news-card">
-              <div className="news-thumb">
-                <span className="eyebrow">League Update</span>
-              </div>
-              <div className="news-body">
-                <span className="eyebrow">News</span>
-                <h3>RCML Season 4 enters its final stretch</h3>
-                <p>
-                  Division 1 heads into the closing weeks with Aether Esports
-                  and Siroxx locked in a tight race for the top seed.
-                </p>
-                <div className="news-foot">
-                  <span>May 28, 2026</span>
-                  <Link href="/news">Read More →</Link>
+            {featured.map((post) => (
+              <div key={post.id} className="news-card">
+                <div className="news-thumb">
+                  <span className="eyebrow">{post.category}</span>
+                </div>
+                <div className="news-body">
+                  <span className="eyebrow">News</span>
+                  <h3>{post.title}</h3>
+                  <p>{excerpt(post.body)}</p>
+                  <div className="news-foot">
+                    <span>{fmtDate(post.created_at)}</span>
+                    <Link href="/news">Read More →</Link>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="news-card">
-              <div className="news-thumb">
-                <span className="eyebrow">Announcement</span>
-              </div>
-              <div className="news-body">
-                <span className="eyebrow">News</span>
-                <h3>RFCL registration window opens next month</h3>
-                <p>
-                  Free Fire Clash Squad league registration is scheduled to
-                  open soon — get your roster ready for Season 1.
-                </p>
-                <div className="news-foot">
-                  <span>May 28, 2026</span>
-                  <Link href="/news">Read More →</Link>
-                </div>
-              </div>
-            </div>
-            <div className="news-card">
-              <div className="news-thumb">
-                <span className="eyebrow">Match Recap</span>
-              </div>
-              <div className="news-body">
-                <span className="eyebrow">News</span>
-                <h3>Aether Esports edges Siroxx in a top-of-table clash</h3>
-                <p>
-                  A close series decided in the final map keeps both teams
-                  at the top of the RCML Season 4 standings.
-                </p>
-                <div className="news-foot">
-                  <span>May 28, 2026</span>
-                  <Link href="/news">Read More →</Link>
-                </div>
-              </div>
-            </div>
-            <div className="news-card">
-              <div className="news-thumb">
-                <span className="eyebrow">Community</span>
-              </div>
-              <div className="news-body">
-                <span className="eyebrow">News</span>
-                <h3>Community continues to grow across RCML</h3>
-                <p>
-                  More players and organizations are joining the ecosystem
-                  as Season 4 heads toward playoffs.
-                </p>
-                <div className="news-foot">
-                  <span>May 28, 2026</span>
-                  <Link href="/news">Read More →</Link>
-                </div>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </section>

@@ -255,7 +255,9 @@ async function loadLiveOrg(
 
   const { data, error } = await supabase
     .from("organizations")
-    .select("id, name, tag, league, division, region");
+    .select(
+      "id, name, tag, league, division, region, description, discord_url, twitch_url, twitter_url"
+    );
 
   if (error || !data || data.length === 0) return { live: false };
 
@@ -344,11 +346,11 @@ async function loadLiveOrg(
       region: row.region ?? "",
       record: "",
       pct: "",
-      description: "",
+      description: row.description?.trim() || "",
       roster: "",
-      discord_url: "",
-      twitch_url: "",
-      twitter_url: "",
+      discord_url: row.discord_url?.trim() || "",
+      twitch_url: row.twitch_url?.trim() || "",
+      twitter_url: row.twitter_url?.trim() || "",
       records,
     },
   };

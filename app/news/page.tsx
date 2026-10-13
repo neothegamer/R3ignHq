@@ -28,6 +28,7 @@ export default async function NewsPage() {
   const { data, error } = await supabase
     .from("news_posts")
     .select("id, title, category, body, created_at")
+    .eq("published", true)
     .order("created_at", { ascending: false });
 
   const posts: NewsPost[] =
