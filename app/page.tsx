@@ -50,11 +50,11 @@ export default function HomePage() {
       <div className="wrap">
         <div className="stat-strip">
           <div className="stat">
-            <div className="num">1.5K+</div>
+            <div className="num">Growing</div>
             <div className="lbl">Players</div>
           </div>
           <div className="stat">
-            <div className="num">50+</div>
+            <div className="num">5+</div>
             <div className="lbl">Teams</div>
           </div>
           <div className="stat">
@@ -365,8 +365,8 @@ export default function HomePage() {
                 <span className="eyebrow">News</span>
                 <h3>RCML Season 4 enters its final stretch</h3>
                 <p>
-                  A legendary season filled with intense battles and
-                  unforgettable moments.
+                  Division 1 heads into the closing weeks with Aether Esports
+                  and Siroxx locked in a tight race for the top seed.
                 </p>
                 <div className="news-foot">
                   <span>May 28, 2026</span>
@@ -382,8 +382,8 @@ export default function HomePage() {
                 <span className="eyebrow">News</span>
                 <h3>RFCL registration window opens next month</h3>
                 <p>
-                  A legendary season filled with intense battles and
-                  unforgettable moments.
+                  Free Fire Clash Squad league registration is scheduled to
+                  open soon — get your roster ready for Season 1.
                 </p>
                 <div className="news-foot">
                   <span>May 28, 2026</span>
@@ -399,8 +399,8 @@ export default function HomePage() {
                 <span className="eyebrow">News</span>
                 <h3>Aether Esports edges Siroxx in a top-of-table clash</h3>
                 <p>
-                  A legendary season filled with intense battles and
-                  unforgettable moments.
+                  A close series decided in the final map keeps both teams
+                  at the top of the RCML Season 4 standings.
                 </p>
                 <div className="news-foot">
                   <span>May 28, 2026</span>
@@ -414,10 +414,10 @@ export default function HomePage() {
               </div>
               <div className="news-body">
                 <span className="eyebrow">News</span>
-                <h3>Player pool crosses 1,500 across 50+ teams</h3>
+                <h3>Community continues to grow across RCML</h3>
                 <p>
-                  A legendary season filled with intense battles and
-                  unforgettable moments.
+                  More players and organizations are joining the ecosystem
+                  as Season 4 heads toward playoffs.
                 </p>
                 <div className="news-foot">
                   <span>May 28, 2026</span>

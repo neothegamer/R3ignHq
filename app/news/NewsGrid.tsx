@@ -23,42 +23,42 @@ const SAMPLE_NEWS: NewsPost[] = [
     id: "sample-1",
     title: "RCML Season 4 enters its final stretch",
     category: "League Update",
-    body: "A legendary season filled with intense battles and unforgettable moments.",
+    body: "Division 1 heads into the closing weeks with Aether Esports and Siroxx locked in a tight race for the top seed.",
     created_at: "2026-05-28T00:00:00Z",
   },
   {
     id: "sample-2",
     title: "RFCL registration window opens next month",
     category: "Announcement",
-    body: "A legendary season filled with intense battles and unforgettable moments.",
+    body: "Free Fire Clash Squad league registration is scheduled to open soon — get your roster ready for Season 1.",
     created_at: "2026-05-28T00:00:00Z",
   },
   {
     id: "sample-3",
     title: "Aether Esports edges Siroxx in a top-of-table clash",
     category: "Match Recap",
-    body: "A legendary season filled with intense battles and unforgettable moments.",
+    body: "A close series decided in the final map keeps both teams at the top of the RCML Season 4 standings.",
     created_at: "2026-05-28T00:00:00Z",
   },
   {
     id: "sample-4",
-    title: "Player pool crosses 1,500 across 50+ teams",
+    title: "Community continues to grow across RCML",
     category: "Community",
-    body: "A legendary season filled with intense battles and unforgettable moments.",
+    body: "More players and organizations are joining the ecosystem as Season 4 heads toward playoffs.",
     created_at: "2026-05-28T00:00:00Z",
   },
   {
     id: "sample-5",
     title: "7SIN Esports crowned RCML Season 3 champion",
     category: "Match Recap",
-    body: "A legendary season filled with intense battles and unforgettable moments.",
+    body: "7SIN Esports closed out Season 3 with a dominant playoff run to claim the RCML title.",
     created_at: "2026-03-12T00:00:00Z",
   },
   {
     id: "sample-6",
     title: "RBSL format and rules revealed",
     category: "Announcement",
-    body: "A legendary season filled with intense battles and unforgettable moments.",
+    body: "Blood Strike Squad Fight format, roster rules, and season structure have been published ahead of launch.",
     created_at: "2026-02-20T00:00:00Z",
   },
 ];
@@ -93,6 +93,16 @@ export default function NewsGrid() {
 
   return (
     <>
+      <p
+        style={{
+          fontFamily: "var(--f-mono)",
+          fontSize: "0.78rem",
+          color: "var(--steel)",
+          marginBottom: "1rem",
+        }}
+      >
+        Showing sample stories — connect a news_posts table to go live.
+      </p>
       <SiteSearch value={query} onChange={setQuery} placeholder="Search news…" />
       <div className="filter-bar">
         <button

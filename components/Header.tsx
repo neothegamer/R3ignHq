@@ -174,7 +174,7 @@ export default function Header({
         <Link href="/" className="brand" aria-label="R3IGN HQ">
           <img
             src="/assets/r3ign-logo-256.jpg"
-            alt=""
+            alt="R3IGN HQ"
             className="brand-mark"
             fetchPriority="high"
             loading="eager"
@@ -299,11 +299,11 @@ export default function Header({
           <span>RCML SEASON 4 — DIVISION 1 IN PROGRESS</span>
           <span>RFCL — REGISTRATION OPENING SOON</span>
           <span>RBSL — REGISTRATION OPENING SOON</span>
-          <span>1,500+ PLAYERS ACROSS 50+ ORGANIZATIONS</span>
+          <span>RCML SEASON 4 — 5 TEAMS COMPETING</span>
           <span>RCML SEASON 4 — DIVISION 1 IN PROGRESS</span>
           <span>RFCL — REGISTRATION OPENING SOON</span>
           <span>RBSL — REGISTRATION OPENING SOON</span>
-          <span>1,500+ PLAYERS ACROSS 50+ ORGANIZATIONS</span>
+          <span>RCML SEASON 4 — 5 TEAMS COMPETING</span>
         </div>
       </div>
     </header>

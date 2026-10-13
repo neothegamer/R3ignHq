@@ -93,6 +93,16 @@ export default function HighlightsGrid() {
 
   return (
     <>
+      <p
+        style={{
+          fontFamily: "var(--f-mono)",
+          fontSize: "0.78rem",
+          color: "var(--steel)",
+          marginBottom: "1rem",
+        }}
+      >
+        Showing sample highlights — upload real clips to go live.
+      </p>
       <div className="filter-bar">
         {(["all", "rcml", "rfcl", "rbsl"] as const).map((v) => (
           <button

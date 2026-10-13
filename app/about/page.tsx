@@ -36,11 +36,11 @@ export default function AboutPage() {
           <div className="wrap">
             <div className="stat-strip">
               <div className="stat">
-                <div className="num">1.5K+</div>
+                <div className="num">Growing</div>
                 <div className="lbl">Players</div>
               </div>
               <div className="stat">
-                <div className="num">50+</div>
+                <div className="num">5+</div>
                 <div className="lbl">Teams</div>
               </div>
               <div className="stat">
