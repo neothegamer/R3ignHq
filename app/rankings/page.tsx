@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
-import RankingsTable, { type LiveRanking } from "./RankingsTable";
+import { getConfirmedResults, getRankings } from "@/lib/teams";
+import RankingsTable from "./RankingsTable";
 
 export const metadata = {
   title: "Rankings",
@@ -23,12 +23,10 @@ export const metadata = {
 };
 
 export default async function RankingsPage() {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("rankings")
-    .select("team_name, tag, league, wins, losses, points");
-
-  const rows: LiveRanking[] = !error && data ? (data as LiveRanking[]) : [];
+  const [rows, results] = await Promise.all([
+    getRankings(),
+    getConfirmedResults(),
+  ]);
 
   return (
     <main id="main-content">
@@ -45,15 +43,16 @@ export default async function RankingsPage() {
           </span>
           <h1>Rankings</h1>
           <p>
-            Standings update after every reported match. Win percentage is used
-            to break ties within a league.
+            Standings update after every reported match. Teams are ordered by
+            win percentage; ties are broken by head-to-head result, then total
+            wins.
           </p>
         </div>
       </div>
 
       <section>
         <div className="wrap">
-          <RankingsTable rows={rows} live={rows.length > 0} />
+          <RankingsTable rows={rows} results={results} />
         </div>
       </section>
     </main>

@@ -16,7 +16,6 @@ const LEAGUES = [
     description:
       "Competitive 5v5 Call of Duty Mobile Multiplayer, run across a regular season and single-elimination playoffs. Currently in Season 4.",
     meta: "FORMAT  5v5, Multiplayer\nPLATFORM  Mobile\nSTATUS  Season 4 in progress",
-    footLeft: "10 Teams",
     footHref: "/rankings",
     footLabel: "View Standings →",
   },
@@ -32,7 +31,6 @@ const LEAGUES = [
     description:
       "Competitive Free Fire Clash Squad operations. Registration opens ahead of the inaugural season — get on the waitlist early.",
     meta: "FORMAT  Clash Squad\nPLATFORM  Mobile\nSTATUS  Registration opening soon",
-    footLeft: "Season 1",
     footHref: "/register",
     footLabel: "Register Interest →",
   },
@@ -48,13 +46,22 @@ const LEAGUES = [
     description:
       "Competitive Blood Strike Squad Fight operations. Format and season dates will be announced alongside RFCL.",
     meta: "FORMAT  Squad Fight\nPLATFORM  Mobile\nSTATUS  Registration opening soon",
-    footLeft: "Season 1",
     footHref: "/register",
     footLabel: "Register Interest →",
   },
 ];
 
-export default function LeagueFilter() {
+type Props = {
+  /** Registered team counts per league id, computed from the database. */
+  teamCounts: Record<string, number>;
+};
+
+function footLeftFor(id: string, count: number) {
+  if (count > 0) return `${count} ${count === 1 ? "Team" : "Teams"}`;
+  return id === "rcml" ? "Registration open" : "Season 1";
+}
+
+export default function LeagueFilter({ teamCounts }: Props) {
   const [filter, setFilter] = useState("all");
 
   const visible = LEAGUES.filter(
@@ -126,7 +133,7 @@ export default function LeagueFilter() {
             </div>
             <div className="dossier-foot">
               <span id={league.id === "rcml" ? "rcml-team-count" : undefined}>
-                {league.footLeft}
+                {footLeftFor(league.id, teamCounts[league.id] ?? 0)}
               </span>
               <Link href={league.footHref}>{league.footLabel}</Link>
             </div>

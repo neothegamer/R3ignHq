@@ -1,5 +1,6 @@
 import Link from "next/link";
 import LeagueFilter from "./LeagueFilter";
+import { countByLeague, getOrganizations } from "@/lib/teams";
 
 export const metadata = {
   title: "Leagues",
@@ -21,7 +22,14 @@ export const metadata = {
   },
 };
 
-export default function LeaguesPage() {
+export default async function LeaguesPage() {
+  const orgs = await getOrganizations();
+  const teamCounts = {
+    rcml: countByLeague(orgs, "rcml"),
+    rfcl: countByLeague(orgs, "rfcl"),
+    rbsl: countByLeague(orgs, "rbsl"),
+  };
+
   return (
     <main id="main-content">
       <div className="page-header">
@@ -46,7 +54,7 @@ export default function LeaguesPage() {
 
       <section>
         <div className="wrap">
-          <LeagueFilter />
+          <LeagueFilter teamCounts={teamCounts} />
         </div>
       </section>
 

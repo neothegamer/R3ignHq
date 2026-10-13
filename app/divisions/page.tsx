@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { countByDivision, getOrganizations } from "@/lib/teams";
 
 export const metadata = {
   title: "Divisions",
@@ -26,7 +27,7 @@ const DIVISIONS = [
     name: "Pro League",
     description:
       "The top tier — the strongest organizations in R3IGN HQ compete for the season championship.",
-    count: "0 orgs",
+    division: 1,
     id: "ladder-count-d1",
   },
   {
@@ -34,7 +35,7 @@ const DIVISIONS = [
     name: "Challengers",
     description:
       "Rising rosters pushing for a promotion spot into the Pro League.",
-    count: "0 orgs",
+    division: 2,
     id: "ladder-count-d2",
   },
   {
@@ -42,7 +43,7 @@ const DIVISIONS = [
     name: "Contenders",
     description:
       "Established organizations building their case for the top tiers.",
-    count: "1 org",
+    division: 3,
     id: "ladder-count-d3",
   },
   {
@@ -50,7 +51,7 @@ const DIVISIONS = [
     name: "Open",
     description:
       "Accessible competitive play for organizations proving themselves.",
-    count: "3 orgs",
+    division: 4,
     id: "ladder-count-d4",
   },
   {
@@ -58,7 +59,7 @@ const DIVISIONS = [
     name: "Development",
     description:
       "A development tier focused on growing tomorrow's R3IGN rosters.",
-    count: "0 orgs",
+    division: 5,
     id: "ladder-count-d5",
   },
   {
@@ -66,12 +67,15 @@ const DIVISIONS = [
     name: "Entry",
     description:
       "Every organization starts here — the first step onto the R3IGN HQ ladder.",
-    count: "1 org",
+    division: 6,
     id: "ladder-count-d6",
   },
 ];
 
-export default function DivisionsPage() {
+export default async function DivisionsPage() {
+  const orgs = await getOrganizations();
+  const counts = countByDivision(orgs, "rcml");
+
   return (
     <main id="main-content">
       <div className="page-header">
@@ -134,11 +138,26 @@ export default function DivisionsPage() {
                   <p>{d.description}</p>
                 </div>
                 <div className="ladder-count" id={d.id}>
-                  {d.count}
+                  {counts[d.division] === 1
+                    ? "1 org"
+                    : `${counts[d.division]} orgs`}
                 </div>
-                <Link href="/rankings" className="btn btn-ghost ladder-cta">
-                  Enter →
-                </Link>
+                {counts[d.division] > 0 ? (
+                  <Link
+                    href="/organizations"
+                    className="btn btn-ghost ladder-cta"
+                  >
+                    View teams →
+                  </Link>
+                ) : (
+                  <span
+                    className="btn btn-ghost ladder-cta"
+                    aria-disabled="true"
+                    style={{ opacity: 0.45, pointerEvents: "none" }}
+                  >
+                    No teams yet
+                  </span>
+                )}
               </div>
             ))}
           </div>

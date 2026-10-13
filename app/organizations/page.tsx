@@ -1,6 +1,10 @@
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
-import OrgsGrid, { type OrgRow, type RankingRow } from "./OrgsGrid";
+import {
+  getConfirmedResults,
+  getOrganizations,
+  getRankings,
+} from "@/lib/teams";
+import OrgsGrid from "./OrgsGrid";
 
 export const metadata = {
   title: "Organizations",
@@ -23,32 +27,17 @@ export const metadata = {
 };
 
 export default async function OrganizationsPage() {
-  const supabase = await createClient();
-
-  const [orgsRes, rankingsRes] = await Promise.all([
-    supabase
-      .from("organizations")
-      .select("id, name, tag, league, division, region")
-      .order("name", { ascending: true }),
-    supabase
-      .from("rankings")
-      .select("organization_id, team_name, league, wins, losses, points"),
+  const [orgs, rankings, results] = await Promise.all([
+    getOrganizations(),
+    getRankings(),
+    getConfirmedResults(),
   ]);
-
-  const orgs: OrgRow[] =
-    !orgsRes.error && orgsRes.data ? (orgsRes.data as OrgRow[]) : [];
-  const rankings: RankingRow[] =
-    !rankingsRes.error && rankingsRes.data
-      ? (rankingsRes.data as RankingRow[])
-      : [];
 
   const orgCount = orgs.length;
   const eyebrowText =
-    orgCount >= 50
-      ? "50+ Registered Orgs"
-      : orgCount > 0
-        ? `${orgCount} Registered Org${orgCount === 1 ? "" : "s"}`
-        : "Registered Organizations";
+    orgCount > 0
+      ? `${orgCount} Registered Org${orgCount === 1 ? "" : "s"}`
+      : "Registered Organizations";
 
   return (
     <main id="main-content">
@@ -74,7 +63,7 @@ export default async function OrganizationsPage() {
 
       <section>
         <div className="wrap">
-          <OrgsGrid orgs={orgs} rankings={rankings} live={orgs.length > 0} />
+          <OrgsGrid orgs={orgs} rankings={rankings} results={results} />
 
           <div
             className="cta-band"
