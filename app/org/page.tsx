@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import OrgIdentity from "@/components/org/OrgIdentity";
@@ -43,6 +44,7 @@ type OrgProfile = {
   discord_url: string;
   twitch_url: string;
   twitter_url: string;
+  logo_url: string;
   records?: RecordRow[];
 };
 
@@ -57,6 +59,7 @@ type OrgRow = {
   discord_url?: string | null;
   twitch_url?: string | null;
   twitter_url?: string | null;
+  logo_url?: string | null;
 };
 
 type RankingRow = {
@@ -77,169 +80,6 @@ type OrgMember = {
   avatar_url: string | null;
 };
 
-const SAMPLE_ORGS: Record<string, OrgProfile> = {
-  "aether-esports": {
-    name: "Aether Esports",
-    tag: "AE",
-    league: "rcml",
-    division: 1,
-    region: "Sample Data",
-    record: "W10–L1",
-    pct: "90.9%",
-    description:
-      "Sample profile — connect Supabase and register real organizations to replace this.",
-    roster:
-      "Add a roster from the Admin page or Supabase once this org signs up.",
-    discord_url: "",
-    twitch_url: "",
-    twitter_url: "",
-  },
-  siroxx: {
-    name: "Siroxx",
-    tag: "SX",
-    league: "rcml",
-    division: 1,
-    region: "Sample Data",
-    record: "W10–L1",
-    pct: "90.9%",
-    description:
-      "Sample profile — connect Supabase and register real organizations to replace this.",
-    roster:
-      "Add a roster from the Admin page or Supabase once this org signs up.",
-    discord_url: "",
-    twitch_url: "",
-    twitter_url: "",
-  },
-  infinite: {
-    name: "Infinite",
-    tag: "IN",
-    league: "rcml",
-    division: 1,
-    region: "Sample Data",
-    record: "W9–L2",
-    pct: "81.8%",
-    description:
-      "Sample profile — connect Supabase and register real organizations to replace this.",
-    roster:
-      "Add a roster from the Admin page or Supabase once this org signs up.",
-    discord_url: "",
-    twitch_url: "",
-    twitter_url: "",
-  },
-  "eleventh-order": {
-    name: "Eleventh Order",
-    tag: "EO",
-    league: "rcml",
-    division: 1,
-    region: "Sample Data",
-    record: "W8–L3",
-    pct: "72.7%",
-    description:
-      "Sample profile — connect Supabase and register real organizations to replace this.",
-    roster:
-      "Add a roster from the Admin page or Supabase once this org signs up.",
-    discord_url: "",
-    twitch_url: "",
-    twitter_url: "",
-  },
-  "seven-esports": {
-    name: "Seven Esports",
-    tag: "SE",
-    league: "rcml",
-    division: 1,
-    region: "Sample Data",
-    record: "W7–L4",
-    pct: "63.6%",
-    description:
-      "Sample profile — connect Supabase and register real organizations to replace this.",
-    roster:
-      "Add a roster from the Admin page or Supabase once this org signs up.",
-    discord_url: "",
-    twitch_url: "",
-    twitter_url: "",
-  },
-  "7sin-esports": {
-    name: "7SIN Esports",
-    tag: "7S",
-    league: "rcml",
-    division: 1,
-    region: "Sample Data",
-    record: "W6–L5",
-    pct: "54.5%",
-    description:
-      "Sample profile — connect Supabase and register real organizations to replace this.",
-    roster:
-      "Add a roster from the Admin page or Supabase once this org signs up.",
-    discord_url: "",
-    twitch_url: "",
-    twitter_url: "",
-  },
-  nightshade: {
-    name: "Nightshade",
-    tag: "NS",
-    league: "rcml",
-    division: 1,
-    region: "Sample Data",
-    record: "W5–L6",
-    pct: "45.5%",
-    description:
-      "Sample profile — connect Supabase and register real organizations to replace this.",
-    roster:
-      "Add a roster from the Admin page or Supabase once this org signs up.",
-    discord_url: "",
-    twitch_url: "",
-    twitter_url: "",
-  },
-  ironclad: {
-    name: "Ironclad",
-    tag: "IC",
-    league: "rcml",
-    division: 1,
-    region: "Sample Data",
-    record: "W4–L7",
-    pct: "36.4%",
-    description:
-      "Sample profile — connect Supabase and register real organizations to replace this.",
-    roster:
-      "Add a roster from the Admin page or Supabase once this org signs up.",
-    discord_url: "",
-    twitch_url: "",
-    twitter_url: "",
-  },
-  "vortex-squad": {
-    name: "Vortex Squad",
-    tag: "VS",
-    league: "rcml",
-    division: 1,
-    region: "Sample Data",
-    record: "W3–L8",
-    pct: "27.3%",
-    description:
-      "Sample profile — connect Supabase and register real organizations to replace this.",
-    roster:
-      "Add a roster from the Admin page or Supabase once this org signs up.",
-    discord_url: "",
-    twitch_url: "",
-    twitter_url: "",
-  },
-  "last-watch": {
-    name: "Last Watch",
-    tag: "LW",
-    league: "rcml",
-    division: 1,
-    region: "Sample Data",
-    record: "W1–L10",
-    pct: "9.1%",
-    description:
-      "Sample profile — connect Supabase and register real organizations to replace this.",
-    roster:
-      "Add a roster from the Admin page or Supabase once this org signs up.",
-    discord_url: "",
-    twitch_url: "",
-    twitter_url: "",
-  },
-};
-
 function slugify(name: string) {
   return name
     .toLowerCase()
@@ -256,7 +96,7 @@ async function loadLiveOrg(
   const { data, error } = await supabase
     .from("organizations")
     .select(
-      "id, name, tag, league, division, region, description, discord_url, twitch_url, twitter_url"
+      "id, name, tag, league, division, region, description, discord_url, twitch_url, twitter_url, logo_url"
     );
 
   if (error || !data || data.length === 0) return { live: false };
@@ -351,6 +191,7 @@ async function loadLiveOrg(
       discord_url: row.discord_url?.trim() || "",
       twitch_url: row.twitch_url?.trim() || "",
       twitter_url: row.twitter_url?.trim() || "",
+      logo_url: row.logo_url?.trim() || "",
       records,
     },
   };
@@ -364,15 +205,11 @@ export default async function OrgPage({ searchParams }: Props) {
   const params = await searchParams;
   const nameSlug = params.name || "";
 
-  const result = nameSlug
-    ? await loadLiveOrg(nameSlug)
-    : { live: false as boolean, org: undefined as OrgProfile | undefined };
+  // No team picked: send visitors back to the list instead of a 404.
+  if (!nameSlug) redirect("/organizations");
 
-  const org: OrgProfile | undefined = result.live
-    ? result.org
-    : nameSlug
-      ? SAMPLE_ORGS[nameSlug]
-      : undefined;
+  const result = await loadLiveOrg(nameSlug);
+  const org: OrgProfile | undefined = result.org;
 
   if (!org) {
     return (
@@ -385,9 +222,11 @@ export default async function OrgPage({ searchParams }: Props) {
             </span>
             <div style={{ marginTop: "1.25rem" }}>
               <span className="eyebrow" style={{ display: "inline-flex" }}>
-                404
+                Team not found
               </span>
-              <h1 style={{ marginTop: "0.75rem" }}>Not Found</h1>
+              <h1 style={{ marginTop: "0.75rem" }}>
+                We couldn&rsquo;t find that team
+              </h1>
             </div>
           </div>
         </div>
@@ -424,7 +263,7 @@ export default async function OrgPage({ searchParams }: Props) {
           },
         ]
       : []);
-  const rosterMembers = result.live ? (result.members ?? []) : [];
+  const rosterMembers = result.members ?? [];
 
   return (
     <main id="main-content">
@@ -526,7 +365,11 @@ export default async function OrgPage({ searchParams }: Props) {
               </div>
 
               <div className="form-panel org-profile-card org-card-identity">
-                <OrgIdentity tag={org.tag} region={org.region} />
+                <OrgIdentity
+                  tag={org.tag}
+                  region={org.region}
+                  logoUrl={org.logo_url || null}
+                />
               </div>
 
               <div className="form-panel org-profile-card org-card-record">

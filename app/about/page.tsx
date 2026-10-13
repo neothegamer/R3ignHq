@@ -1,4 +1,6 @@
 import Footer from "@/components/Footer";
+import { ABOUT } from "@/lib/about";
+import { getSiteStats, statValue } from "@/lib/stats";
 
 export const metadata = {
   title: "About",
@@ -6,7 +8,9 @@ export const metadata = {
     "R3IGN HQ is a competitive esports ecosystem built on professional league operations, fair competition, and accurate rankings.",
 };
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const stats = await getSiteStats();
+
   return (
     <>
       <main id="main-content">
@@ -36,24 +40,90 @@ export default function AboutPage() {
           <div className="wrap">
             <div className="stat-strip">
               <div className="stat">
-                <div className="num">Growing</div>
-                <div className="lbl">Players</div>
+                <div className="num">{stats.leagues}</div>
+                <div className="lbl">Leagues</div>
               </div>
               <div className="stat">
-                <div className="num">5+</div>
+                <div className="num">{statValue(stats.teams)}</div>
                 <div className="lbl">Teams</div>
               </div>
               <div className="stat">
-                <div className="num">3</div>
-                <div className="lbl">League Titles</div>
+                <div className="num">{statValue(stats.players)}</div>
+                <div className="lbl">Players</div>
               </div>
               <div className="stat">
-                <div className="num">99.9%</div>
-                <div className="lbl">Competitive</div>
+                <div className="num">{statValue(stats.matches)}</div>
+                <div className="lbl">Matches Played</div>
               </div>
             </div>
           </div>
         </section>
+
+        {ABOUT.story.trim() ? (
+          <section>
+            <div className="wrap">
+              <div className="section-head">
+                <div>
+                  <span className="eyebrow">Our Story</span>
+                  <h2>How R3IGN HQ started</h2>
+                </div>
+              </div>
+              {ABOUT.story
+                .split(/\n{2,}/)
+                .map((p) => p.trim())
+                .filter(Boolean)
+                .map((p, i) => (
+                  <p
+                    key={i}
+                    style={{ maxWidth: "70ch", marginBottom: "1.25rem" }}
+                  >
+                    {p}
+                  </p>
+                ))}
+            </div>
+          </section>
+        ) : null}
+
+        {ABOUT.founders.length > 0 ? (
+          <section>
+            <div className="wrap">
+              <div className="section-head">
+                <div>
+                  <span className="eyebrow">The Team</span>
+                  <h2>The people behind R3IGN HQ</h2>
+                </div>
+              </div>
+              <div className="value-list">
+                {ABOUT.founders.map((f, i) => (
+                  <div key={f.name} className="value-row">
+                    <div className="idx">{String(i + 1).padStart(2, "0")}</div>
+                    <div>
+                      {f.photoUrl ? (
+                        <img
+                          src={f.photoUrl}
+                          alt={f.name}
+                          loading="lazy"
+                          style={{
+                            width: 72,
+                            height: 72,
+                            objectFit: "cover",
+                            borderRadius: "50%",
+                            marginBottom: "0.75rem",
+                          }}
+                        />
+                      ) : null}
+                      <h3>{f.name}</h3>
+                      <p>
+                        {f.role}
+                        {f.bio ? ` — ${f.bio}` : ""}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        ) : null}
 
         <section>
           <div className="wrap">

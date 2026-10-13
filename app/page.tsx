@@ -2,6 +2,7 @@ import Link from "next/link";
 import Footer from "@/components/Footer";
 import HeroVideo from "@/components/HeroVideo";
 import { createClient } from "@/lib/supabase/server";
+import { getSiteStats, statValue } from "@/lib/stats";
 
 type FeaturedPost = {
   id: string;
@@ -28,37 +29,6 @@ function excerpt(body: string) {
   return text.length > 140 ? text.slice(0, 140).trim() + "…" : text;
 }
 
-const FALLBACK_NEWS: FeaturedPost[] = [
-  {
-    id: "sample-1",
-    title: "RCML Season 4 enters its final stretch",
-    category: "League Update",
-    body: "Division 1 heads into the closing weeks with Aether Esports and Siroxx locked in a tight race for the top seed.",
-    created_at: "2026-05-28T00:00:00Z",
-  },
-  {
-    id: "sample-2",
-    title: "RFCL registration window opens next month",
-    category: "Announcement",
-    body: "Free Fire Clash Squad league registration is scheduled to open soon — get your roster ready for Season 1.",
-    created_at: "2026-05-28T00:00:00Z",
-  },
-  {
-    id: "sample-3",
-    title: "Aether Esports edges Siroxx in a top-of-table clash",
-    category: "Match Recap",
-    body: "A close series decided in the final map keeps both teams at the top of the RCML Season 4 standings.",
-    created_at: "2026-05-28T00:00:00Z",
-  },
-  {
-    id: "sample-4",
-    title: "Community continues to grow across RCML",
-    category: "Community",
-    body: "More players and organizations are joining the ecosystem as Season 4 heads toward playoffs.",
-    created_at: "2026-05-28T00:00:00Z",
-  },
-];
-
 export default async function HomePage() {
   const supabase = await createClient();
   const { data } = await supabase
@@ -69,7 +39,8 @@ export default async function HomePage() {
     .limit(4);
 
   const featured: FeaturedPost[] =
-    data && data.length > 0 ? (data as FeaturedPost[]) : FALLBACK_NEWS;
+    data && data.length > 0 ? (data as FeaturedPost[]) : [];
+  const stats = await getSiteStats();
 
   return (
     <>
@@ -118,20 +89,20 @@ export default async function HomePage() {
       <div className="wrap">
         <div className="stat-strip">
           <div className="stat">
-            <div className="num">Growing</div>
-            <div className="lbl">Players</div>
+            <div className="num">{stats.leagues}</div>
+            <div className="lbl">Leagues</div>
           </div>
           <div className="stat">
-            <div className="num">5+</div>
+            <div className="num">{statValue(stats.teams)}</div>
             <div className="lbl">Teams</div>
           </div>
           <div className="stat">
-            <div className="num">3</div>
-            <div className="lbl">League Titles</div>
+            <div className="num">{statValue(stats.players)}</div>
+            <div className="lbl">Players</div>
           </div>
           <div className="stat">
-            <div className="num">99.9%</div>
-            <div className="lbl">Competitive</div>
+            <div className="num">{statValue(stats.matches)}</div>
+            <div className="lbl">Matches Played</div>
           </div>
         </div>
       </div>
@@ -424,6 +395,11 @@ export default async function HomePage() {
               View All News
             </Link>
           </div>
+          {featured.length === 0 ? (
+            <p className="empty-state">
+              No stories yet. League updates and match recaps will appear here.
+            </p>
+          ) : null}
           <div className="news-grid">
             {featured.map((post) => (
               <div key={post.id} className="news-card">
@@ -436,7 +412,7 @@ export default async function HomePage() {
                   <p>{excerpt(post.body)}</p>
                   <div className="news-foot">
                     <span>{fmtDate(post.created_at)}</span>
-                    <Link href="/news">Read More →</Link>
+                    <Link href={`/news/${post.id}`}>Read More →</Link>
                   </div>
                 </div>
               </div>
@@ -468,8 +444,8 @@ export default async function HomePage() {
             <div className="champion-card">
               <div className="season">RCML · Season 4</div>
               <div className="title">Champion</div>
-              <h3>Aether Esports</h3>
-              <div className="date">June 2026</div>
+              <h3>To Be Determined</h3>
+              <div className="date">Season in progress</div>
             </div>
             <div className="champion-card">
               <div className="season">RFCL · Season 1</div>
