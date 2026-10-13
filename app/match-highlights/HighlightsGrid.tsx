@@ -11,26 +11,6 @@ export type Highlight = {
   created_at: string;
 };
 
-const SAMPLE: Highlight[] = [
-  {
-    title: "Aether Esports clutch triple in Division 1 final",
-    description:
-      "The last-round push that sealed the RCML Season 4 Division 1 title.",
-    league: "rcml",
-    match_label: "RCML S4 · Division 1 · Grand Final",
-    video_url: "",
-    created_at: "2026-03-15T12:00:00.000Z",
-  },
-  {
-    title: "RFCL opening week — top frag of the night",
-    description: "Vanta's 24-kill run from RFCL's opening week.",
-    league: "rfcl",
-    match_label: "RFCL S1 · Week 1",
-    video_url: "",
-    created_at: "2026-03-14T12:00:00.000Z",
-  },
-];
-
 function formatDate(iso: string) {
   try {
     return new Date(iso).toLocaleDateString(undefined, {
@@ -87,30 +67,18 @@ function ShareButton({ h }: { h: Highlight }) {
 
 type Props = {
   items?: Highlight[];
-  live?: boolean;
 };
 
-export default function HighlightsGrid({ items = [], live = false }: Props) {
+export default function HighlightsGrid({ items = [] }: Props) {
   const [filter, setFilter] = useState("all");
 
-  const source = live && items.length > 0 ? items : SAMPLE;
+  // Only clips that actually have a video are shown.
+  const source = items.filter((h) => Boolean(h.video_url));
   const visible =
     filter === "all" ? source : source.filter((h) => h.league === filter);
 
   return (
     <>
-      <p
-        style={{
-          fontFamily: "var(--f-mono)",
-          fontSize: "0.78rem",
-          color: "var(--steel)",
-          marginBottom: "1rem",
-        }}
-      >
-        {live
-          ? "Showing live highlights from Supabase."
-          : "Showing sample highlights — run the match_highlights migration and upload clips to go live."}
-      </p>
       <div className="filter-bar">
         {(["all", "rcml", "rfcl", "rbsl"] as const).map((v) => (
           <button
@@ -141,7 +109,13 @@ export default function HighlightsGrid({ items = [], live = false }: Props) {
                 data-tags={h.league}
               >
                 <div className="news-thumb">
-                  <span className="eyebrow">No Video Yet</span>
+                  <video
+                    src={h.video_url}
+                    controls
+                    preload="metadata"
+                    playsInline
+                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  />
                 </div>
                 <div className="news-body">
                   <span className="eyebrow">{h.match_label}</span>
@@ -154,10 +128,6 @@ export default function HighlightsGrid({ items = [], live = false }: Props) {
                 </div>
               </div>
             ))}
-            <p className="field-hint" style={{ gridColumn: "1 / -1" }}>
-              Sample highlights shown — admins can upload real clips from the
-              Admin page.
-            </p>
           </>
         )}
       </div>

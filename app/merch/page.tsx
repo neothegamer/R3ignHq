@@ -33,16 +33,15 @@ export default function MerchPage() {
           </span>
           <h1>Merch</h1>
           <p>
-            Official R3IGN gear is on the way. This page is a placeholder
-            &mdash; connect it to a storefront (Shopify, Fourthwall, Printful,
-            etc.) when you&rsquo;re ready to sell.
+            Official R3IGN gear is on the way. Join the newsletter and
+            we&rsquo;ll let you know the moment the first drop is live.
           </p>
         </div>
       </div>
 
       <section>
         <div className="wrap center">
-          <Link href="/community" className="btn btn-primary">
+          <Link href="/#newsletter-form" className="btn btn-primary">
             Get Notified
           </Link>
         </div>

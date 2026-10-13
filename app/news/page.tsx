@@ -57,7 +57,7 @@ export default async function NewsPage() {
 
       <section>
         <div className="wrap">
-          <NewsGrid posts={posts} live={posts.length > 0} />
+          <NewsGrid posts={posts} />
         </div>
       </section>
     </main>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
 
 export const metadata = {
   title: "Tournament Bracket",
@@ -27,79 +28,6 @@ type Match = {
   score_b: number | null;
   winner: "a" | "b" | null;
 };
-
-const SAMPLE_BRACKET: Match[] = [
-  {
-    round_number: 1,
-    round_name: "Quarterfinal",
-    match_order: 0,
-    team_a: "Aether Esports",
-    team_b: "Last Watch",
-    score_a: 3,
-    score_b: 0,
-    winner: "a",
-  },
-  {
-    round_number: 1,
-    round_name: "Quarterfinal",
-    match_order: 1,
-    team_a: "Siroxx",
-    team_b: "Vortex Squad",
-    score_a: 3,
-    score_b: 1,
-    winner: "a",
-  },
-  {
-    round_number: 1,
-    round_name: "Quarterfinal",
-    match_order: 2,
-    team_a: "Infinite",
-    team_b: "Ironclad",
-    score_a: 3,
-    score_b: 2,
-    winner: "a",
-  },
-  {
-    round_number: 1,
-    round_name: "Quarterfinal",
-    match_order: 3,
-    team_a: "Eleventh Order",
-    team_b: "Nightshade",
-    score_a: 2,
-    score_b: 3,
-    winner: "b",
-  },
-  {
-    round_number: 2,
-    round_name: "Semifinal",
-    match_order: 0,
-    team_a: "Aether Esports",
-    team_b: "Siroxx",
-    score_a: null,
-    score_b: null,
-    winner: null,
-  },
-  {
-    round_number: 2,
-    round_name: "Semifinal",
-    match_order: 1,
-    team_a: "Infinite",
-    team_b: "Nightshade",
-    score_a: null,
-    score_b: null,
-    winner: null,
-  },
-  {
-    round_number: 3,
-    round_name: "Final",
-    match_order: 0,
-    team_a: null,
-    team_b: null,
-    score_a: null,
-    score_b: null,
-    winner: null,
-  },
-];
 
 function TeamRow({
   name,
@@ -198,7 +126,50 @@ function Bracket({ matches }: { matches: Match[] }) {
   );
 }
 
-export default function BracketsPage() {
+type TournamentView = {
+  name: string;
+  matches: Match[];
+};
+
+async function loadActiveTournament(): Promise<TournamentView | null> {
+  const supabase = await createClient();
+
+  const { data: tournament, error } = await supabase
+    .from("tournaments")
+    .select("id, name, status")
+    .neq("status", "draft")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !tournament) return null;
+
+  const { data: rows, error: matchError } = await supabase
+    .from("bracket_matches")
+    .select(
+      "round_number, round_name, match_order, team_a, team_b, score_a, score_b, winner"
+    )
+    .eq("tournament_id", tournament.id);
+
+  if (matchError || !rows || rows.length === 0) return null;
+
+  const matches: Match[] = rows.map((r) => ({
+    round_number: r.round_number,
+    round_name: r.round_name ?? "",
+    match_order: r.match_order,
+    team_a: r.team_a,
+    team_b: r.team_b,
+    score_a: r.score_a,
+    score_b: r.score_b,
+    winner: r.winner === "a" || r.winner === "b" ? r.winner : null,
+  }));
+
+  return { name: tournament.name, matches };
+}
+
+export default async function BracketsPage() {
+  const tournament = await loadActiveTournament();
+
   return (
     <main id="main-content">
       <div className="page-header">
@@ -211,9 +182,11 @@ export default function BracketsPage() {
             className="eyebrow"
             style={{ marginTop: "1rem", display: "inline-flex" }}
           >
-            Live Tournament
+            {tournament ? "Live Tournament" : "Tournament Bracket"}
           </span>
-          <h1 id="bracket-title">RCML Season 4 Playoffs</h1>
+          <h1 id="bracket-title">
+            {tournament ? tournament.name : "Tournament Bracket"}
+          </h1>
           <p>
             Single-elimination playoff bracket. Winners advance right; the
             final sits on the far right.
@@ -223,21 +196,20 @@ export default function BracketsPage() {
 
       <section>
         <div className="wrap">
-          <p
-            style={{
-              fontFamily: "var(--f-mono)",
-              fontSize: "0.78rem",
-              color: "var(--steel)",
-              marginBottom: "1.25rem",
-            }}
-            id="bracket-status"
-          >
-            Showing sample bracket &mdash; connect Supabase and add a
-            tournament to go live.
-          </p>
-          <div className="bracket-scroll">
-            <Bracket matches={SAMPLE_BRACKET} />
-          </div>
+          {tournament ? (
+            <div className="bracket-scroll">
+              <Bracket matches={tournament.matches} />
+            </div>
+          ) : (
+            <div className="empty-state">
+              No active tournament right now. The playoff bracket appears here
+              as soon as a tournament starts.{" "}
+              <Link href="/leagues" style={{ color: "var(--paper)" }}>
+                Explore the leagues
+              </Link>
+              .
+            </div>
+          )}
         </div>
       </section>
     </main>

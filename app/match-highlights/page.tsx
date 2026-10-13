@@ -28,6 +28,8 @@ export default async function MatchHighlightsPage() {
   const { data, error } = await supabase
     .from("match_highlights")
     .select("title, description, league, match_label, video_url, created_at")
+    .not("video_url", "is", null)
+    .neq("video_url", "")
     .order("created_at", { ascending: false });
 
   const items: Highlight[] =
@@ -48,15 +50,15 @@ export default async function MatchHighlightsPage() {
           </span>
           <h1>Match Highlights</h1>
           <p>
-            Screen-recorded clips from league matches, uploaded by R3IGN HQ
-            admins after each session.
+            Screen-recorded clips from league matches, posted after each
+            session.
           </p>
         </div>
       </div>
 
       <section className="section-tight">
         <div className="wrap">
-          <HighlightsGrid items={items} live={items.length > 0} />
+          <HighlightsGrid items={items} />
         </div>
       </section>
     </main>

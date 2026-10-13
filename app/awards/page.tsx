@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
 
 export const metadata = {
   title: "Awards",
@@ -20,20 +21,28 @@ export const metadata = {
   },
 };
 
-const SAMPLE_WINNERS = [
-  { award_label: "MVP", player_name: "Kestrel", context: "RCML S4 · D1 · Aether Esports" },
-  { award_label: "MVP", player_name: "Vale", context: "RCML S4 · D2 · Siroxx" },
-  { award_label: "MVP", player_name: "Onyx", context: "RCML S3 · D1 · 7SIN Esports" },
-  { award_label: "MVP", player_name: "Draft", context: "RCML S3 · D3 · Infinite" },
-  { award_label: "MVP", player_name: "Wren", context: "RCML S4 · D4 · Eleventh Order" },
-  { award_label: "MVP", player_name: "Halcyon", context: "RCML S4 · D5 · Seven Esports" },
-  { award_label: "MVP", player_name: "Nyx", context: "RCML S3 · D2 · Last Watch" },
-  { award_label: "MVP", player_name: "Riven", context: "RCML S4 · D3 · Phantom" },
-  { award_label: "MVP", player_name: "Solace", context: "RCML S3 · D4 · Apex Unit" },
-  { award_label: "MVP", player_name: "Cipher", context: "RCML S4 · D6 · Void Protocol" },
-];
+type Winner = {
+  id: string;
+  award_label: string;
+  player_name: string;
+  context: string | null;
+  season: string | null;
+};
 
-export default function AwardsPage() {
+async function loadWinners(): Promise<Winner[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("award_winners")
+    .select("id, award_label, player_name, context, season")
+    .order("created_at", { ascending: false });
+
+  if (error || !data) return [];
+  return data as Winner[];
+}
+
+export default async function AwardsPage() {
+  const winners = await loadWinners();
+
   return (
     <main id="main-content">
       <div className="page-header">
@@ -61,32 +70,32 @@ export default function AwardsPage() {
             <div className="award-card">
               <div className="medal">PO</div>
               <h3>Player of the Year</h3>
-              <p>Annual Recognition</p>
+              <p>Winner to be announced</p>
             </div>
             <div className="award-card">
               <div className="medal">OO</div>
               <h3>Organization of the Year</h3>
-              <p>Annual Recognition</p>
+              <p>Winner to be announced</p>
             </div>
             <div className="award-card">
               <div className="medal">RO</div>
               <h3>Rookie of the Year</h3>
-              <p>Annual Recognition</p>
+              <p>Winner to be announced</p>
             </div>
             <div className="award-card">
               <div className="medal">MO</div>
               <h3>MVP of the Year</h3>
-              <p>Annual Recognition</p>
+              <p>Winner to be announced</p>
             </div>
             <div className="award-card">
               <div className="medal">CL</div>
               <h3>Community Leader</h3>
-              <p>Annual Recognition</p>
+              <p>Winner to be announced</p>
             </div>
             <div className="award-card">
               <div className="medal">CC</div>
               <h3>Content Creator of the Year</h3>
-              <p>Annual Recognition</p>
+              <p>Winner to be announced</p>
             </div>
           </div>
         </div>
@@ -97,18 +106,25 @@ export default function AwardsPage() {
           <div className="section-head">
             <div>
               <span className="eyebrow">Hall of Champions</span>
-              <h2>Recent MVPs</h2>
+              <h2>Recent winners</h2>
             </div>
           </div>
-          <div className="champ-grid" id="champ-grid">
-            {SAMPLE_WINNERS.map((w, i) => (
-              <div key={i} className="champ-card">
-                <div className="tag">{w.award_label}</div>
-                <h3>{w.player_name}</h3>
-                <p>{w.context}</p>
-              </div>
-            ))}
-          </div>
+          {winners.length === 0 ? (
+            <div className="empty-state">
+              No winners have been announced yet. Check back once the season
+              wraps up.
+            </div>
+          ) : (
+            <div className="champ-grid" id="champ-grid">
+              {winners.map((w) => (
+                <div key={w.id} className="champ-card">
+                  <div className="tag">{w.award_label}</div>
+                  <h3>{w.player_name}</h3>
+                  {w.context ? <p>{w.context}</p> : null}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
     </main>

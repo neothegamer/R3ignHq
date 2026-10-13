@@ -16,6 +16,14 @@ type BotContextValue = { openBot: () => void };
 
 const BotContext = createContext<BotContextValue | null>(null);
 
+/**
+ * The bot is hidden until it is connected to a real service.
+ * To turn it on, set NEXT_PUBLIC_CHATBOT_ENABLED=true (in .env.local and in
+ * the Vercel project settings) and replace sendMessageToBot below with a real
+ * API call.
+ */
+const BOT_ENABLED = process.env.NEXT_PUBLIC_CHATBOT_ENABLED === "true";
+
 async function sendMessageToBot(_message: string): Promise<string> {
   // Replace this placeholder with the R3IGN bot service when its API exists.
   return "The R3IGN Bot is being connected. Please check back soon.";
@@ -120,6 +128,12 @@ export default function R3ignBotProvider({
     }
   }
 
+  if (!BOT_ENABLED) {
+    return (
+      <BotContext.Provider value={{ openBot }}>{children}</BotContext.Provider>
+    );
+  }
+
   return (
     <BotContext.Provider value={{ openBot }}>
       {children}
@@ -154,7 +168,7 @@ export default function R3ignBotProvider({
         <div className="assistant-head">
           <div>
             <h2 id="r3ign-bot-title">R3IGN Bot</h2>
-            <p>League assistant · Preview</p>
+            <p>League assistant</p>
           </div>
           <button
             type="button"
@@ -168,8 +182,8 @@ export default function R3ignBotProvider({
         <div className="assistant-body" aria-live="polite">
           {messages.length === 0 ? (
             <p className="assistant-msg bot">
-              Welcome to R3IGN HQ. The bot connection is not live yet, but you
-              can try sending a message.
+              Welcome to R3IGN HQ. Ask me about leagues, registration, or
+              rankings.
             </p>
           ) : (
             messages.map((message) => (

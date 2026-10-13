@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import SiteSearch from "@/components/SiteSearch";
 
@@ -18,51 +19,6 @@ const CATEGORY_TAG: Record<string, string> = {
   Community: "community",
 };
 
-const SAMPLE_NEWS: NewsPost[] = [
-  {
-    id: "sample-1",
-    title: "RCML Season 4 enters its final stretch",
-    category: "League Update",
-    body: "Division 1 heads into the closing weeks with Aether Esports and Siroxx locked in a tight race for the top seed.",
-    created_at: "2026-05-28T00:00:00Z",
-  },
-  {
-    id: "sample-2",
-    title: "RFCL registration window opens next month",
-    category: "Announcement",
-    body: "Free Fire Clash Squad league registration is scheduled to open soon — get your roster ready for Season 1.",
-    created_at: "2026-05-28T00:00:00Z",
-  },
-  {
-    id: "sample-3",
-    title: "Aether Esports edges Siroxx in a top-of-table clash",
-    category: "Match Recap",
-    body: "A close series decided in the final map keeps both teams at the top of the RCML Season 4 standings.",
-    created_at: "2026-05-28T00:00:00Z",
-  },
-  {
-    id: "sample-4",
-    title: "Community continues to grow across RCML",
-    category: "Community",
-    body: "More players and organizations are joining the ecosystem as Season 4 heads toward playoffs.",
-    created_at: "2026-05-28T00:00:00Z",
-  },
-  {
-    id: "sample-5",
-    title: "7SIN Esports crowned RCML Season 3 champion",
-    category: "Match Recap",
-    body: "7SIN Esports closed out Season 3 with a dominant playoff run to claim the RCML title.",
-    created_at: "2026-03-12T00:00:00Z",
-  },
-  {
-    id: "sample-6",
-    title: "RBSL format and rules revealed",
-    category: "Announcement",
-    body: "Blood Strike Squad Fight format, roster rules, and season structure have been published ahead of launch.",
-    created_at: "2026-02-20T00:00:00Z",
-  },
-];
-
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString(undefined, {
     month: "long",
@@ -78,14 +34,13 @@ function excerpt(body: string) {
 
 type Props = {
   posts?: NewsPost[];
-  live?: boolean;
 };
 
-export default function NewsGrid({ posts = [], live = false }: Props) {
+export default function NewsGrid({ posts = [] }: Props) {
   const [filter, setFilter] = useState("all");
   const [query, setQuery] = useState("");
 
-  const source = live && posts.length > 0 ? posts : SAMPLE_NEWS;
+  const source = posts;
 
   const visible = useMemo(
     () =>
@@ -103,31 +58,6 @@ export default function NewsGrid({ posts = [], live = false }: Props) {
 
   return (
     <>
-      {!live && (
-        <p
-          style={{
-            fontFamily: "var(--f-mono)",
-            fontSize: "0.78rem",
-            color: "var(--steel)",
-            marginBottom: "1rem",
-          }}
-        >
-          Showing sample stories — run the news_posts migration and insert rows
-          to go live.
-        </p>
-      )}
-      {live && (
-        <p
-          style={{
-            fontFamily: "var(--f-mono)",
-            fontSize: "0.78rem",
-            color: "var(--steel)",
-            marginBottom: "1rem",
-          }}
-        >
-          Showing live posts from Supabase.
-        </p>
-      )}
       <SiteSearch
         value={query}
         onChange={setQuery}
@@ -171,13 +101,21 @@ export default function NewsGrid({ posts = [], live = false }: Props) {
         </button>
       </div>
 
-      {visible.length === 0 && (
+      {source.length === 0 ? (
+        <p className="empty-state">
+          No stories yet. League updates and match recaps will appear here.
+        </p>
+      ) : visible.length === 0 ? (
         <p className="empty-state">No stories match that filter.</p>
-      )}
+      ) : null}
 
       <div className="news-grid">
         {visible.map((post) => (
-          <div key={post.id} className="news-card news-item">
+          <Link
+            key={post.id}
+            href={`/news/${post.id}`}
+            className="news-card news-item"
+          >
             <div className="news-thumb">
               <span className="eyebrow">{post.category}</span>
             </div>
@@ -189,7 +127,7 @@ export default function NewsGrid({ posts = [], live = false }: Props) {
                 <span>{fmtDate(post.created_at)}</span>
               </div>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
     </>
