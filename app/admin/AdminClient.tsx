@@ -188,6 +188,51 @@ function uniqueSlug(title: string, existing: NewsPost[], currentId?: string) {
   }
 }
 
+const PAGE_SIZE = 10;
+
+function Pager({
+  page,
+  pageCount,
+  onPage,
+}: {
+  page: number;
+  pageCount: number;
+  onPage: (page: number) => void;
+}) {
+  if (pageCount <= 1) return null;
+  return (
+    <div className="admin-actions" style={{ justifyContent: "center" }}>
+      <button
+        type="button"
+        className="btn btn-ghost"
+        disabled={page <= 1}
+        onClick={() => onPage(page - 1)}
+      >
+        Previous
+      </button>
+      <span className="admin-muted">
+        Page {page} of {pageCount}
+      </span>
+      <button
+        type="button"
+        className="btn btn-ghost"
+        disabled={page >= pageCount}
+        onClick={() => onPage(page + 1)}
+      >
+        Next
+      </button>
+    </div>
+  );
+}
+
+function pageSlice<T>(items: T[], page: number): T[] {
+  return items.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+}
+
+function pageCountFor(count: number) {
+  return Math.max(1, Math.ceil(count / PAGE_SIZE));
+}
+
 function profileInfo(profile: ProfileInfo | ProfileInfo[] | null) {
   return Array.isArray(profile) ? profile[0] ?? null : profile;
 }
@@ -221,6 +266,7 @@ export default function AdminClient() {
   const [profileMatch, setProfileMatch] = useState<ProfileMatch | null>(null);
   const [lookupError, setLookupError] = useState<string | null>(null);
   const [lookingUp, setLookingUp] = useState(false);
+  const [page, setPage] = useState(1);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -254,7 +300,7 @@ export default function AdminClient() {
         .order("start_time", { ascending: true }),
       supabase
         .from("news_posts")
-        .select("id,title,body,category,author_name,published,created_at")
+        .select("id,slug,title,body,category,author_name,published,created_at")
         .order("created_at", { ascending: false }),
       supabase
         .from("award_winners")
@@ -855,6 +901,7 @@ export default function AdminClient() {
                   setNotice(null);
                   setDraft(EMPTY_DRAFT);
                   setEditing(false);
+                  setPage(1);
                 }}
               >
                 {tab.label}
@@ -882,7 +929,7 @@ export default function AdminClient() {
                     <p className="field-hint">No registrations to review.</p>
                   ) : (
                     <div className="admin-card-list">
-                      {registrations.map((row) => (
+                      {pageSlice(registrations, page).map((row) => (
                         <article className="admin-record" key={row.id}>
                           <div className="admin-record-heading">
                             <div>
@@ -917,6 +964,21 @@ export default function AdminClient() {
                       ))}
                     </div>
                   )}
+                  <Pager
+                    page={page}
+                    pageCount={pageCountFor(
+                      activeTab === "registrations"
+                        ? registrations.length
+                        : activeTab === "verifications"
+                          ? gameAccounts.filter((row) => row.verification_status === "pending").length
+                          : activeTab === "events"
+                            ? events.length
+                            : activeTab === "admins"
+                              ? admins.length
+                              : contentRows.length
+                    )}
+                    onPage={setPage}
+                  />
                 </section>
               )}
 
@@ -927,7 +989,7 @@ export default function AdminClient() {
                     <p className="field-hint">No game accounts are awaiting verification.</p>
                   ) : (
                     <div className="admin-card-list">
-                      {gameAccounts.filter((row) => row.verification_status === "pending").map((row) => (
+                      {pageSlice(gameAccounts.filter((row) => row.verification_status === "pending"), page).map((row) => (
                         <article className="admin-record" key={row.id}>
                           <div className="admin-record-heading">
                             <div>
@@ -950,6 +1012,21 @@ export default function AdminClient() {
                       ))}
                     </div>
                   )}
+                  <Pager
+                    page={page}
+                    pageCount={pageCountFor(
+                      activeTab === "registrations"
+                        ? registrations.length
+                        : activeTab === "verifications"
+                          ? gameAccounts.filter((row) => row.verification_status === "pending").length
+                          : activeTab === "events"
+                            ? events.length
+                            : activeTab === "admins"
+                              ? admins.length
+                              : contentRows.length
+                    )}
+                    onPage={setPage}
+                  />
                 </section>
               )}
 
@@ -960,7 +1037,7 @@ export default function AdminClient() {
                     <p className="field-hint">No events found.</p>
                   ) : (
                     <div className="admin-card-list">
-                      {events.map((row) => (
+                      {pageSlice(events, page).map((row) => (
                         <article className="admin-record" key={row.id}>
                           <div className="admin-record-heading">
                             <div>
@@ -986,6 +1063,21 @@ export default function AdminClient() {
                       ))}
                     </div>
                   )}
+                  <Pager
+                    page={page}
+                    pageCount={pageCountFor(
+                      activeTab === "registrations"
+                        ? registrations.length
+                        : activeTab === "verifications"
+                          ? gameAccounts.filter((row) => row.verification_status === "pending").length
+                          : activeTab === "events"
+                            ? events.length
+                            : activeTab === "admins"
+                              ? admins.length
+                              : contentRows.length
+                    )}
+                    onPage={setPage}
+                  />
                 </section>
               )}
 
@@ -1045,7 +1137,7 @@ export default function AdminClient() {
                     <p className="field-hint">No items yet.</p>
                   ) : (
                     <div className="admin-card-list">
-                      {contentRows.map((row) => (
+                      {pageSlice(contentRows, page).map((row) => (
                         <article className="admin-record" key={row.id}>
                           <div className="admin-record-heading">
                             <div>
@@ -1067,6 +1159,21 @@ export default function AdminClient() {
                       ))}
                     </div>
                   )}
+                  <Pager
+                    page={page}
+                    pageCount={pageCountFor(
+                      activeTab === "registrations"
+                        ? registrations.length
+                        : activeTab === "verifications"
+                          ? gameAccounts.filter((row) => row.verification_status === "pending").length
+                          : activeTab === "events"
+                            ? events.length
+                            : activeTab === "admins"
+                              ? admins.length
+                              : contentRows.length
+                    )}
+                    onPage={setPage}
+                  />
                 </section>
               )}
 
@@ -1105,7 +1212,7 @@ export default function AdminClient() {
                     <p className="field-hint">No administrator records were returned.</p>
                   ) : (
                     <div className="admin-card-list">
-                      {admins.map((row) => (
+                      {pageSlice(admins, page).map((row) => (
                         <article className="admin-record admin-admin-row" key={row.profile_id}>
                           <div>
                             <h3>{profileInfo(row.profile)?.display_name || "Unnamed player"}</h3>
@@ -1119,6 +1226,21 @@ export default function AdminClient() {
                       ))}
                     </div>
                   )}
+                  <Pager
+                    page={page}
+                    pageCount={pageCountFor(
+                      activeTab === "registrations"
+                        ? registrations.length
+                        : activeTab === "verifications"
+                          ? gameAccounts.filter((row) => row.verification_status === "pending").length
+                          : activeTab === "events"
+                            ? events.length
+                            : activeTab === "admins"
+                              ? admins.length
+                              : contentRows.length
+                    )}
+                    onPage={setPage}
+                  />
                 </section>
               )}
             </div>
