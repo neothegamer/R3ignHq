@@ -4635,9 +4635,9 @@ body:has(.msg-layout) .site-footer {
   align-items: center;
   gap: 0.75rem;
   margin: 0 0 1.15rem;
-  padding: 0.85rem 1rem;
-  border: 1px solid var(--line);
-  background: var(--panel-2);
+  padding: 0;
+  border: none !important;
+  background: transparent !important;
 }
 .admin-search,
 .admin-filter {
