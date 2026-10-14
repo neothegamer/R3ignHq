@@ -1051,6 +1051,38 @@ export type Database = {
           },
         ]
       }
+      public_game_accounts: {
+        Row: {
+          game: string | null
+          game_uid: string | null
+          ign: string | null
+          profile_id: string | null
+          verification_status: string | null
+        }
+        Insert: {
+          game?: string | null
+          game_uid?: string | null
+          ign?: string | null
+          profile_id?: string | null
+          verification_status?: string | null
+        }
+        Update: {
+          game?: string | null
+          game_uid?: string | null
+          ign?: string | null
+          profile_id?: string | null
+          verification_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_accounts_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       blocked_by_peer: { Args: { me: string; peer: string }; Returns: boolean }
