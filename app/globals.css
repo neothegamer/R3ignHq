@@ -4721,13 +4721,49 @@ body:has(.msg-layout) .site-footer {
 .admin-page .admin-panel {
   padding-top: clamp(0.75rem, 2vw, 1.1rem);
 }
+/* Eliminate excessive overhead space inside admin tab sections */
+.admin-panel > section {
+  padding-block: 0 !important;
+}
 .admin-page .admin-panel > section > h2,
 .admin-page .admin-section-heading {
   margin-top: 0;
 }
+/* Uniform display typography for all section titles across every tab */
+.admin-page .admin-panel h2,
 .admin-page .admin-panel > section > h2,
-.admin-page .admin-section-heading h2 {
+.admin-page .admin-section-heading h2,
+.admin-page .admin-section-header h2 {
+  font-family: var(--f-display) !important;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: clamp(1.75rem, 3.5vw, 2.45rem);
+  letter-spacing: 0.02em;
+  margin-top: 0;
   margin-bottom: 0.85rem;
+}
+
+/* Organizations tab card styling matching standard admin records */
+.admin-card {
+  min-width: 0;
+  padding: clamp(1rem, 2.5vw, 1.4rem);
+  border: 1px solid var(--line);
+  background: var(--panel);
+}
+.admin-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.admin-card-title-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.admin-card-title {
+  margin: 0;
+  font-size: 1.1rem;
 }
 
 /* Four-section navigation and page-scoped search */
