@@ -255,6 +255,11 @@ function profileInfo(profile: ProfileInfo | ProfileInfo[] | null) {
   return Array.isArray(profile) ? profile[0] ?? null : profile;
 }
 
+function matchesSearch(haystack: string, query: string) {
+  if (!query.trim()) return true;
+  return haystack.toLowerCase().includes(query.trim().toLowerCase());
+}
+
 export default function AdminClient() {
   const supabase = useMemo(() => createClient(), []);
   const { confirm } = useR3ignDialog();
@@ -286,6 +291,9 @@ export default function AdminClient() {
   const [lookupError, setLookupError] = useState<string | null>(null);
   const [lookingUp, setLookingUp] = useState(false);
   const [page, setPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -396,17 +404,143 @@ export default function AdminClient() {
     };
   }, [registrations, gameAccounts, events, news, reports]);
 
+  const filteredRegistrations = useMemo(() => {
+    return registrations.filter((row) => {
+      if (statusFilter !== "all" && row.status !== statusFilter) return false;
+      const hay = `${row.team_name} ${row.team_tag} ${row.league} ${row.captain_name} ${row.captain_email}`;
+      return matchesSearch(hay, searchQuery);
+    });
+  }, [registrations, searchQuery, statusFilter]);
+
+  const pendingVerifications = useMemo(
+    () => gameAccounts.filter((row) => row.verification_status === "pending"),
+    [gameAccounts]
+  );
+
+  const filteredVerifications = useMemo(() => {
+    return pendingVerifications.filter((row) => {
+      const profile = profileInfo(row.profile);
+      const hay = `${row.ign} ${row.game} ${row.game_uid ?? ""} ${profile?.display_name ?? ""} ${profile?.player_id ?? ""} ${profile?.league_id ?? ""}`;
+      return matchesSearch(hay, searchQuery);
+    });
+  }, [pendingVerifications, searchQuery]);
+
+  const filteredEvents = useMemo(() => {
+    return events.filter((row) => {
+      if (statusFilter === "ended" && !row.ended_at) return false;
+      if (statusFilter === "active" && row.ended_at) return false;
+      const hay = `${row.title} ${row.league ?? ""} ${row.location ?? ""} ${row.description ?? ""}`;
+      return matchesSearch(hay, searchQuery);
+    });
+  }, [events, searchQuery, statusFilter]);
+
+  const filteredNews = useMemo(() => {
+    return news.filter((row) => {
+      if (statusFilter === "published" && !row.published) return false;
+      if (statusFilter === "draft" && row.published) return false;
+      const hay = `${row.title} ${row.category} ${row.author_name ?? ""} ${row.body}`;
+      return matchesSearch(hay, searchQuery);
+    });
+  }, [news, searchQuery, statusFilter]);
+
+  const filteredReports = useMemo(() => {
+    return reports.filter((row) => {
+      if (statusFilter !== "all" && row.status !== statusFilter) return false;
+      const reported = profileInfo(row.reported);
+      const reporter = profileInfo(row.reporter);
+      const hay = `${row.reason} ${row.details ?? ""} ${reported?.display_name ?? ""} ${reporter?.display_name ?? ""}`;
+      return matchesSearch(hay, searchQuery);
+    });
+  }, [reports, searchQuery, statusFilter]);
+
   const tabRowCount: Record<Tab, number> = {
-    registrations: registrations.length,
-    verifications: gameAccounts.filter((row) => row.verification_status === "pending").length,
-    events: events.length,
-    news: news.length,
+    registrations: filteredRegistrations.length,
+    verifications: filteredVerifications.length,
+    events: filteredEvents.length,
+    news: filteredNews.length,
     awards: awards.length,
     highlights: highlights.length,
-    reports: reports.length,
+    reports: filteredReports.length,
     admins: admins.length,
   };
   const tabPageCount = pageCountFor(tabRowCount[activeTab]);
+
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll(ids: string[]) {
+    setSelectedIds((prev) => {
+      const allSelected = ids.length > 0 && ids.every((id) => prev.has(id));
+      if (allSelected) return new Set();
+      return new Set(ids);
+    });
+  }
+
+  function bulkUpdateRegistrations(status: "approved" | "rejected") {
+    const ids = [...selectedIds];
+    if (ids.length === 0) return;
+    void runConfirmed(
+      `${status === "approved" ? "Approve" : "Reject"} ${ids.length} registration(s)?`,
+      async () => {
+        const previous = registrations;
+        setRegistrations((items) =>
+          items.map((item) =>
+            ids.includes(item.id) ? { ...item, status } : item
+          )
+        );
+        const { error } = await supabase
+          .from("registrations")
+          .update({ status })
+          .in("id", ids);
+        if (error) {
+          setRegistrations(previous);
+          throw error;
+        }
+        setSelectedIds(new Set());
+        setNotice({
+          kind: "success",
+          text: `${ids.length} registration(s) ${status}.`,
+        });
+      }
+    );
+  }
+
+  function bulkUpdateVerifications(status: "verified" | "rejected") {
+    const ids = [...selectedIds];
+    if (ids.length === 0) return;
+    void runConfirmed(
+      `${status === "verified" ? "Verify" : "Reject"} ${ids.length} game account(s)?`,
+      async () => {
+        const previous = gameAccounts;
+        setGameAccounts((items) =>
+          items.map((item) =>
+            ids.includes(item.id)
+              ? { ...item, verification_status: status }
+              : item
+          )
+        );
+        const { error } = await supabase
+          .from("game_accounts")
+          .update({ verification_status: status })
+          .in("id", ids);
+        if (error) {
+          setGameAccounts(previous);
+          throw error;
+        }
+        setSelectedIds(new Set());
+        setNotice({
+          kind: "success",
+          text: `${ids.length} account(s) ${status}.`,
+        });
+      }
+    );
+  }
 
   function changeReportStatus(row: PlayerReport, status: PlayerReport["status"]) {
     const label = status === "resolved" ? "mark this report resolved" : status === "dismissed" ? "dismiss this report" : "reopen this report";
@@ -1047,7 +1181,7 @@ export default function AdminClient() {
 
   const contentRows: (NewsPost | AwardWinner | Highlight)[] =
     activeTab === "news"
-      ? news
+      ? filteredNews
       : activeTab === "awards"
         ? awards
         : activeTab === "highlights"
@@ -1089,6 +1223,9 @@ export default function AdminClient() {
                   setDraft(EMPTY_DRAFT);
                   setEditing(false);
                   setPage(1);
+                  setSearchQuery("");
+                  setStatusFilter("all");
+                  setSelectedIds(new Set());
                 }}
               >
                 {tab.label}
@@ -1112,21 +1249,73 @@ export default function AdminClient() {
               {activeTab === "registrations" && (
                 <section aria-labelledby="admin-section-heading">
                   <h2 id="admin-section-heading">Team Registrations</h2>
-                  {registrations.length === 0 ? (
-                    <p className="field-hint">No registrations to review.</p>
+                  <div className="admin-toolbar" style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", marginBottom: "1rem", alignItems: "center" }}>
+                    <input
+                      type="search"
+                      placeholder="Search team, tag, captain…"
+                      value={searchQuery}
+                      onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
+                      style={{ flex: "1 1 200px", minWidth: "160px" }}
+                    />
+                    <select
+                      value={statusFilter}
+                      onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+                    >
+                      <option value="all">All statuses</option>
+                      <option value="pending">Pending</option>
+                      <option value="approved">Approved</option>
+                      <option value="rejected">Rejected</option>
+                    </select>
+                    {pageSlice(filteredRegistrations, page).length > 0 && (
+                      <label style={{ display: "flex", alignItems: "center", gap: "0.35rem", cursor: "pointer" }}>
+                        <input
+                          type="checkbox"
+                          checked={
+                            pageSlice(filteredRegistrations, page).length > 0 &&
+                            pageSlice(filteredRegistrations, page).every((r) => selectedIds.has(r.id))
+                          }
+                          onChange={() =>
+                            toggleSelectAll(pageSlice(filteredRegistrations, page).map((r) => r.id))
+                          }
+                        />
+                        Select page
+                      </label>
+                    )}
+                    {selectedIds.size > 0 && (
+                      <>
+                        <button type="button" className="btn btn-primary" disabled={busy} onClick={() => bulkUpdateRegistrations("approved")}>
+                          Approve selected ({selectedIds.size})
+                        </button>
+                        <button type="button" className="btn btn-ghost" disabled={busy} onClick={() => bulkUpdateRegistrations("rejected")}>
+                          Reject selected ({selectedIds.size})
+                        </button>
+                      </>
+                    )}
+                  </div>
+                  {filteredRegistrations.length === 0 ? (
+                    <p className="field-hint">No registrations match your filters.</p>
                   ) : (
                     <div className="admin-card-list">
-                      {pageSlice(registrations, page).map((row) => (
+                      {pageSlice(filteredRegistrations, page).map((row) => (
                         <article className="admin-record" key={row.id}>
                           <div className="admin-record-heading">
-                            <div>
-                              <span className={`admin-status is-${row.status}`}>
-                                {row.status}
-                              </span>
-                              <h3>
-                                {row.team_name}{" "}
-                                <span className="admin-muted">[{row.team_tag}]</span>
-                              </h3>
+                            <div style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem" }}>
+                              <input
+                                type="checkbox"
+                                checked={selectedIds.has(row.id)}
+                                onChange={() => toggleSelect(row.id)}
+                                aria-label={`Select ${row.team_name}`}
+                                style={{ marginTop: "0.35rem" }}
+                              />
+                              <div>
+                                <span className={`admin-status is-${row.status}`}>
+                                  {row.status}
+                                </span>
+                                <h3>
+                                  {row.team_name}{" "}
+                                  <span className="admin-muted">[{row.team_tag}]</span>
+                                </h3>
+                              </div>
                             </div>
                             <span className="admin-record-date">
                               {dateLabel(row.created_at)}
@@ -1162,16 +1351,59 @@ export default function AdminClient() {
               {activeTab === "verifications" && (
                 <section aria-labelledby="admin-section-heading">
                   <h2 id="admin-section-heading">Game Account Verifications</h2>
-                  {gameAccounts.filter((row) => row.verification_status === "pending").length === 0 ? (
-                    <p className="field-hint">No game accounts are awaiting verification.</p>
+                  <div className="admin-toolbar" style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", marginBottom: "1rem", alignItems: "center" }}>
+                    <input
+                      type="search"
+                      placeholder="Search IGN, game, player…"
+                      value={searchQuery}
+                      onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
+                      style={{ flex: "1 1 200px", minWidth: "160px" }}
+                    />
+                    {pageSlice(filteredVerifications, page).length > 0 && (
+                      <label style={{ display: "flex", alignItems: "center", gap: "0.35rem", cursor: "pointer" }}>
+                        <input
+                          type="checkbox"
+                          checked={
+                            pageSlice(filteredVerifications, page).length > 0 &&
+                            pageSlice(filteredVerifications, page).every((r) => selectedIds.has(r.id))
+                          }
+                          onChange={() =>
+                            toggleSelectAll(pageSlice(filteredVerifications, page).map((r) => r.id))
+                          }
+                        />
+                        Select page
+                      </label>
+                    )}
+                    {selectedIds.size > 0 && (
+                      <>
+                        <button type="button" className="btn btn-primary" disabled={busy} onClick={() => bulkUpdateVerifications("verified")}>
+                          Verify selected ({selectedIds.size})
+                        </button>
+                        <button type="button" className="btn btn-ghost" disabled={busy} onClick={() => bulkUpdateVerifications("rejected")}>
+                          Reject selected ({selectedIds.size})
+                        </button>
+                      </>
+                    )}
+                  </div>
+                  {filteredVerifications.length === 0 ? (
+                    <p className="field-hint">No game accounts match your filters.</p>
                   ) : (
                     <div className="admin-card-list">
-                      {pageSlice(gameAccounts.filter((row) => row.verification_status === "pending"), page).map((row) => (
+                      {pageSlice(filteredVerifications, page).map((row) => (
                         <article className="admin-record" key={row.id}>
                           <div className="admin-record-heading">
-                            <div>
-                              <span className="admin-status is-pending">pending</span>
-                              <h3>{row.ign} <span className="admin-muted">· {row.game.toUpperCase()}</span></h3>
+                            <div style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem" }}>
+                              <input
+                                type="checkbox"
+                                checked={selectedIds.has(row.id)}
+                                onChange={() => toggleSelect(row.id)}
+                                aria-label={`Select ${row.ign}`}
+                                style={{ marginTop: "0.35rem" }}
+                              />
+                              <div>
+                                <span className="admin-status is-pending">pending</span>
+                                <h3>{row.ign} <span className="admin-muted">· {row.game.toUpperCase()}</span></h3>
+                              </div>
                             </div>
                             <span className="admin-record-date">{dateLabel(row.updated_at)}</span>
                           </div>
@@ -1204,6 +1436,24 @@ export default function AdminClient() {
                     <button type="button" className="btn btn-primary" onClick={startCreate}>
                       Add New
                     </button>
+                  </div>
+
+                  <div className="admin-toolbar" style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", marginBottom: "1rem", alignItems: "center" }}>
+                    <input
+                      type="search"
+                      placeholder="Search events…"
+                      value={searchQuery}
+                      onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
+                      style={{ flex: "1 1 200px", minWidth: "160px" }}
+                    />
+                    <select
+                      value={statusFilter}
+                      onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+                    >
+                      <option value="all">All events</option>
+                      <option value="active">Active</option>
+                      <option value="ended">Ended</option>
+                    </select>
                   </div>
 
                   <form className="admin-editor" onSubmit={submitContent}>
@@ -1277,11 +1527,11 @@ export default function AdminClient() {
                     </div>
                   </form>
 
-                  {events.length === 0 ? (
-                    <p className="field-hint">No events found.</p>
+                  {filteredEvents.length === 0 ? (
+                    <p className="field-hint">No events match your filters.</p>
                   ) : (
                     <div className="admin-card-list">
-                      {pageSlice(events, page).map((row) => (
+                      {pageSlice(filteredEvents, page).map((row) => (
                         <article className="admin-record" key={row.id}>
                           <div className="admin-record-heading">
                             <div>
@@ -1363,6 +1613,26 @@ export default function AdminClient() {
                     </h2>
                     <button type="button" className="btn btn-primary" onClick={startCreate}>Add New</button>
                   </div>
+
+                  {activeTab === "news" && (
+                    <div className="admin-toolbar" style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", marginBottom: "1rem", alignItems: "center" }}>
+                      <input
+                        type="search"
+                        placeholder="Search news…"
+                        value={searchQuery}
+                        onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
+                        style={{ flex: "1 1 200px", minWidth: "160px" }}
+                      />
+                      <select
+                        value={statusFilter}
+                        onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+                      >
+                        <option value="all">All</option>
+                        <option value="published">Published</option>
+                        <option value="draft">Draft</option>
+                      </select>
+                    </div>
+                  )}
 
                   <form className="admin-editor" onSubmit={submitContent}>
                     <h3>{editing ? "Edit item" : "Create item"}</h3>
@@ -1454,11 +1724,29 @@ export default function AdminClient() {
               {activeTab === "reports" && (
                 <section aria-labelledby="admin-section-heading">
                   <h2 id="admin-section-heading">Player Reports</h2>
-                  {reports.length === 0 ? (
-                    <p className="field-hint">No reports to review.</p>
+                  <div className="admin-toolbar" style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", marginBottom: "1rem", alignItems: "center" }}>
+                    <input
+                      type="search"
+                      placeholder="Search reports…"
+                      value={searchQuery}
+                      onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
+                      style={{ flex: "1 1 200px", minWidth: "160px" }}
+                    />
+                    <select
+                      value={statusFilter}
+                      onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+                    >
+                      <option value="all">All statuses</option>
+                      <option value="open">Open</option>
+                      <option value="resolved">Resolved</option>
+                      <option value="dismissed">Dismissed</option>
+                    </select>
+                  </div>
+                  {filteredReports.length === 0 ? (
+                    <p className="field-hint">No reports match your filters.</p>
                   ) : (
                     <div className="admin-card-list">
-                      {pageSlice(reports, page).map((row) => {
+                      {pageSlice(filteredReports, page).map((row) => {
                         const reported = profileInfo(row.reported);
                         const reporter = profileInfo(row.reporter);
                         return (
