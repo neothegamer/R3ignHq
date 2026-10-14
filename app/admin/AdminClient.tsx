@@ -41,6 +41,8 @@ type Registration = {
   region: string | null;
   roster: string;
   notes: string | null;
+  logo_url: string | null;
+  submitted_by: string | null;
   status: "pending" | "approved" | "rejected";
   created_at: string | null;
 };
@@ -311,7 +313,7 @@ export default function AdminClient() {
       supabase
         .from("registrations")
         .select(
-          "id,team_name,team_tag,league,captain_name,captain_email,discord,region,roster,notes,status,created_at"
+          "id,team_name,team_tag,league,captain_name,captain_email,discord,region,roster,notes,logo_url,submitted_by,status,created_at"
         )
         .order("created_at", { ascending: false }),
       supabase
@@ -482,6 +484,42 @@ export default function AdminClient() {
     });
   }
 
+  async function syncRegistrationToOrg(row: Registration) {
+    const { data: existing, error: checkErr } = await supabase
+      .from("organizations")
+      .select("id")
+      .ilike("name", row.team_name.trim())
+      .maybeSingle();
+
+    if (checkErr) throw checkErr;
+    if (existing) {
+      return { created: false, message: `${row.team_name} is already on the Organizations page.` };
+    }
+
+    const { error: insertErr } = await supabase.from("organizations").insert({
+      name: row.team_name.trim(),
+      tag: row.team_tag.trim(),
+      league: row.league.trim(),
+      region: row.region?.trim() || null,
+      logo_url: row.logo_url || null,
+      owner_id: row.submitted_by || null,
+      division: 6,
+    });
+
+    if (insertErr) throw insertErr;
+    return { created: true, message: `${row.team_name} successfully added to Organizations.` };
+  }
+
+  function syncSingleOrg(row: Registration) {
+    void runConfirmed(
+      `Sync ${row.team_name} to the Organizations page?`,
+      async () => {
+        const result = await syncRegistrationToOrg(row);
+        setNotice({ kind: "success", text: result.message });
+      }
+    );
+  }
+
   function bulkUpdateRegistrations(status: "approved" | "rejected") {
     const ids = [...selectedIds];
     if (ids.length === 0) return;
@@ -502,6 +540,18 @@ export default function AdminClient() {
           setRegistrations(previous);
           throw error;
         }
+
+        if (status === "approved") {
+          const approvedRows = previous.filter((item) => ids.includes(item.id));
+          for (const reg of approvedRows) {
+            try {
+              await syncRegistrationToOrg(reg);
+            } catch (err) {
+              console.error("Failed to sync org to table:", err);
+            }
+          }
+        }
+
         setSelectedIds(new Set());
         setNotice({
           kind: "success",
@@ -593,6 +643,14 @@ export default function AdminClient() {
         if (error) {
           setRegistrations(previous);
           throw error;
+        }
+
+        if (status === "approved") {
+          try {
+            await syncRegistrationToOrg(row);
+          } catch (err) {
+            console.error("Failed to sync org to table:", err);
+          }
         }
       }
     );
@@ -1339,6 +1397,13 @@ export default function AdminClient() {
                             <div className="admin-actions">
                               <button className="btn btn-primary" disabled={busy} onClick={() => changeRegistrationStatus(row, "approved")}>Approve</button>
                               <button className="btn btn-ghost" disabled={busy} onClick={() => changeRegistrationStatus(row, "rejected")}>Reject</button>
+                            </div>
+                          )}
+                          {row.status === "approved" && (
+                            <div className="admin-actions">
+                              <button type="button" className="btn btn-ghost" disabled={busy} onClick={() => syncSingleOrg(row)}>
+                                Sync to Organizations
+                              </button>
                             </div>
                           )}
                         </article>
