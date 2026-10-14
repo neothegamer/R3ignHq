@@ -1,3 +1,5 @@
+import { SITE } from "@/lib/site";
+
 export const metadata = {
   title: "Copyright Policy",
   description:
@@ -98,11 +100,9 @@ export default function CopyrightPage() {
                   If you believe content on R3IGN infringes your copyright,
                   submit a notice to{" "}
                   <a
-                    href="mailto:r3ignhq@gmail.com"
+                    href={`mailto:${SITE.contactEmail}`}
                     style={{ color: "var(--amber)" }}
-                  >
-                    r3ignhq@gmail.com
-                  </a>{" "}
+                  >{SITE.contactEmail}</a>{" "}
                   including:
                 </p>
                 <ol>
@@ -138,11 +138,9 @@ export default function CopyrightPage() {
                   If you believe content you submitted was removed or disabled
                   in error, submit a counter-notice to{" "}
                   <a
-                    href="mailto:r3ignhq@gmail.com"
+                    href={`mailto:${SITE.contactEmail}`}
                     style={{ color: "var(--amber)" }}
-                  >
-                    r3ignhq@gmail.com
-                  </a>{" "}
+                  >{SITE.contactEmail}</a>{" "}
                   including:
                 </p>
                 <ol>
@@ -217,11 +215,9 @@ export default function CopyrightPage() {
                   For copyright-related questions, notices, or concerns,
                   contact us at{" "}
                   <a
-                    href="mailto:r3ignhq@gmail.com"
+                    href={`mailto:${SITE.contactEmail}`}
                     style={{ color: "var(--amber)" }}
-                  >
-                    r3ignhq@gmail.com
-                  </a>
+                  >{SITE.contactEmail}</a>
                   .
                 </p>
               </div>

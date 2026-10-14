@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Footer from "@/components/Footer";
 import HeroVideo from "@/components/HeroVideo";
+import NewsletterForm from "@/components/newsletter/NewsletterForm";
 import { createClient } from "@/lib/supabase/server";
 import { getSiteStats, statValue } from "@/lib/stats";
 import {
@@ -547,98 +548,9 @@ export default async function HomePage() {
             RCML announcements drop.
           </p>
 
-          <div
-            id="newsletter-success"
-            className="form-success"
-            role="status"
-            style={{ marginTop: "1.25rem" }}
-          >
-            You&rsquo;re on the list. Watch your inbox for league news.
-          </div>
-          <div
-            id="newsletter-error"
-            className="auth-error"
-            style={{ marginTop: "1rem" }}
-          ></div>
-
-          <form
-            id="newsletter-form"
-            style={{
-              marginTop: "1.5rem",
-              display: "flex",
-              flexWrap: "wrap",
-              gap: "0.65rem",
-              justifyContent: "center",
-              alignItems: "stretch",
-              maxWidth: 420,
-              marginLeft: "auto",
-              marginRight: "auto",
-            }}
-          >
-            {/* Honeypot */}
-            <div
-              style={{
-                position: "absolute",
-                left: "-9999px",
-                opacity: 0,
-                height: 0,
-                overflow: "hidden",
-              }}
-              aria-hidden="true"
-            >
-              <label htmlFor="newsletter-website">Website</label>
-              <input
-                type="text"
-                id="newsletter-website"
-                name="website"
-                tabIndex={-1}
-                autoComplete="off"
-              />
-            </div>
-
-            <label htmlFor="newsletter-email" className="visually-hidden">
-              Email
-            </label>
-            <input
-              type="email"
-              id="newsletter-email"
-              name="email"
-              required
-              placeholder="you@email.com"
-              autoComplete="email"
-              style={{
-                flex: "1 1 200px",
-                minWidth: 0,
-                margin: 0,
-                boxSizing: "border-box",
-                background: "var(--panel)",
-                border: "1px solid var(--line)",
-                color: "var(--paper)",
-                padding: "0.9em 1em",
-                fontFamily: "var(--f-body)",
-                fontSize: "0.95rem",
-                lineHeight: 1.25,
-                height: "auto",
-              }}
-            />
-            <button
-              type="submit"
-              className="btn btn-primary"
-              id="newsletter-submit"
-              style={{
-                alignSelf: "stretch",
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                boxSizing: "border-box",
-                padding: "0.9em 1.5em",
-              }}
-            >
-              Subscribe
-            </button>
-          </form>
+          <NewsletterForm />
           <p className="field-hint" style={{ marginTop: "0.75rem" }}>
-            No spam. Unsubscribe any time. See our{" "}
+            No spam. We only email about R3IGN league news. See our{" "}
             <Link href="/privacy">Privacy Policy</Link>.
           </p>
         </div>

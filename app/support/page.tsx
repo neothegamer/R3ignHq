@@ -1,4 +1,5 @@
 import Footer from "@/components/Footer";
+import { SITE } from "@/lib/site";
 
 export const metadata = {
   title: "Support",
@@ -39,9 +40,7 @@ export default function SupportPage() {
                 League rules, event schedules, account access, verification,
                 and general platform support.
               </p>
-              <a className="link" href="mailto:r3ignhq@gmail.com">
-                r3ignhq@gmail.com
-              </a>
+              <a className="link" href={`mailto:${SITE.contactEmail}`}>{SITE.contactEmail}</a>
             </div>
             <div className="contact-card">
               <span className="eyebrow">Team Registration</span>
@@ -49,9 +48,7 @@ export default function SupportPage() {
                 Roster eligibility, division requests, registration status,
                 and organization administration.
               </p>
-              <a className="link" href="mailto:r3ignhq@gmail.com">
-                r3ignhq@gmail.com
-              </a>
+              <a className="link" href={`mailto:${SITE.contactEmail}`}>{SITE.contactEmail}</a>
             </div>
             <div className="contact-card">
               <span className="eyebrow">Partnerships</span>
@@ -59,9 +56,7 @@ export default function SupportPage() {
                 Sponsorships, media opportunities, broadcasts, and official
                 organization partnerships.
               </p>
-              <a className="link" href="mailto:r3ignhq@gmail.com">
-                r3ignhq@gmail.com
-              </a>
+              <a className="link" href={`mailto:${SITE.contactEmail}`}>{SITE.contactEmail}</a>
             </div>
           </div>
         </div>
@@ -287,7 +282,7 @@ export default function SupportPage() {
               >
                 <p>
                   Send an email to{" "}
-                  <a href="mailto:r3ignhq@gmail.com">r3ignhq@gmail.com</a>{" "}
+                  <a href={`mailto:${SITE.contactEmail}`}>{SITE.contactEmail}</a>{" "}
                   with your team name, league, match details, and a clear
                   statement of the issue. Include screenshots, recordings,
                   timestamps, or other evidence that enables league staff to

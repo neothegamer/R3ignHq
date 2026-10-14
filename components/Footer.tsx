@@ -62,6 +62,7 @@ export default function Footer() {
             <h4>Help</h4>
             <ul>
               <li><Link href="/guide">Guide</Link></li>
+              <li><Link href="/rules">League Rules</Link></li>
               <li><Link href="/support">FAQ & Support</Link></li>
               <li><Link href="/about">About R3IGN HQ</Link></li>
               <li><Link href="/community">Community</Link></li>

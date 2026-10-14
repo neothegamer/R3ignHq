@@ -1,3 +1,5 @@
+import { SITE } from "@/lib/site";
+
 export const metadata = {
   title: "Privacy Policy",
   description:
@@ -161,11 +163,9 @@ export default function PrivacyPage() {
                   Privacy questions, rights requests, and concerns about
                   personal information can be sent to{" "}
                   <a
-                    href="mailto:r3ignhq@gmail.com"
+                    href={`mailto:${SITE.contactEmail}`}
                     style={{ color: "var(--amber)" }}
-                  >
-                    r3ignhq@gmail.com
-                  </a>
+                  >{SITE.contactEmail}</a>
                   . Please include enough detail for us to identify the
                   relevant account or request.
                 </p>

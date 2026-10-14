@@ -1,3 +1,5 @@
+import { SITE } from "@/lib/site";
+
 export const metadata = {
   title: "Terms & Conditions",
   description:
@@ -157,16 +159,30 @@ export default function TermsPage() {
             <div className="value-row">
               <div className="idx">10</div>
               <div>
+                <h3>League Rules</h3>
+                <p>
+                  The league rules apply to every team and player in R3IGN HQ
+                  competitions, in addition to these terms. By registering a
+                  team or entering a competition you agree to follow them. You
+                  can read them on the{" "}
+                  <a href="/rules" style={{ color: "var(--amber)" }}>
+                    League Rules
+                  </a>{" "}
+                  page.
+                </p>
+              </div>
+            </div>
+            <div className="value-row">
+              <div className="idx">11</div>
+              <div>
                 <h3>Contact and Notices</h3>
                 <p>
                   Questions or formal notices concerning these terms can be
                   sent to{" "}
                   <a
-                    href="mailto:r3ignhq@gmail.com"
+                    href={`mailto:${SITE.contactEmail}`}
                     style={{ color: "var(--amber)" }}
-                  >
-                    r3ignhq@gmail.com
-                  </a>
+                  >{SITE.contactEmail}</a>
                   . R3IGN may provide operational notices through the website,
                   account email, or other contact details associated with your
                   account.
