@@ -4627,6 +4627,89 @@ body:has(.msg-layout) .site-footer {
   }
 }
 
+
+/* Admin toolbar: search + filters (match dossier field controls) */
+.admin-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0 0 1.15rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+}
+.admin-search,
+.admin-filter {
+  min-height: 44px;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  background: var(--ink);
+  color: var(--paper);
+  font: 0.9rem var(--f-body);
+  text-transform: none;
+}
+.admin-search {
+  flex: 1 1 220px;
+  min-width: 160px;
+}
+.admin-search::placeholder {
+  color: var(--steel);
+}
+.admin-search:focus,
+.admin-filter:focus {
+  outline: none;
+  border-color: var(--amber);
+}
+.admin-filter {
+  flex: 0 0 auto;
+  min-width: 9.5rem;
+  cursor: pointer;
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--paper-dim) 50%),
+    linear-gradient(135deg, var(--paper-dim) 50%, transparent 50%);
+  background-position: calc(100% - 16px) calc(50% - 2px), calc(100% - 11px) calc(50% - 2px);
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  padding-right: 2rem;
+}
+.admin-select-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--paper-dim);
+  font: 0.72rem var(--f-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  user-select: none;
+}
+.admin-select-all input {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--amber);
+  cursor: pointer;
+}
+
+/* Admin page headers only — larger type for briefing-room hierarchy */
+.admin-page .page-header h1 {
+  font-size: clamp(2.6rem, 6.5vw, 4rem);
+  letter-spacing: 0.02em;
+}
+.admin-page .page-header p {
+  font-size: clamp(1rem, 2vw, 1.15rem);
+  max-width: 60ch;
+}
+.admin-page .admin-panel > section > h2,
+.admin-page .admin-section-heading h2 {
+  font-size: clamp(1.75rem, 3.5vw, 2.45rem);
+  letter-spacing: 0.02em;
+}
+.admin-page .admin-editor h3 {
+  font-size: clamp(1.15rem, 2vw, 1.35rem);
+}
+
 /* Four-section navigation and page-scoped search */
 .site-header {
   overflow: visible;

@@ -1229,7 +1229,11 @@ export default function AdminClient() {
                 }}
               >
                 {tab.label}
-                <span className="admin-tab-count">{counts[tab.id]}</span>
+                {counts[tab.id] > 0 && (
+                  <span className="admin-tab-count" aria-label={`${counts[tab.id]} pending`}>
+                    {counts[tab.id]}
+                  </span>
+                )}
               </button>
             ))}
           </div>
@@ -1249,15 +1253,16 @@ export default function AdminClient() {
               {activeTab === "registrations" && (
                 <section aria-labelledby="admin-section-heading">
                   <h2 id="admin-section-heading">Team Registrations</h2>
-                  <div className="admin-toolbar" style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", marginBottom: "1rem", alignItems: "center" }}>
+                  <div className="admin-toolbar">
                     <input
                       type="search"
+                      className="admin-search"
                       placeholder="Search team, tag, captain…"
                       value={searchQuery}
                       onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
-                      style={{ flex: "1 1 200px", minWidth: "160px" }}
                     />
                     <select
+                      className="admin-filter"
                       value={statusFilter}
                       onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
                     >
@@ -1267,7 +1272,7 @@ export default function AdminClient() {
                       <option value="rejected">Rejected</option>
                     </select>
                     {pageSlice(filteredRegistrations, page).length > 0 && (
-                      <label style={{ display: "flex", alignItems: "center", gap: "0.35rem", cursor: "pointer" }}>
+                      <label className="admin-select-all">
                         <input
                           type="checkbox"
                           checked={
@@ -1351,16 +1356,16 @@ export default function AdminClient() {
               {activeTab === "verifications" && (
                 <section aria-labelledby="admin-section-heading">
                   <h2 id="admin-section-heading">Game Account Verifications</h2>
-                  <div className="admin-toolbar" style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", marginBottom: "1rem", alignItems: "center" }}>
+                  <div className="admin-toolbar">
                     <input
                       type="search"
+                      className="admin-search"
                       placeholder="Search IGN, game, player…"
                       value={searchQuery}
                       onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
-                      style={{ flex: "1 1 200px", minWidth: "160px" }}
                     />
                     {pageSlice(filteredVerifications, page).length > 0 && (
-                      <label style={{ display: "flex", alignItems: "center", gap: "0.35rem", cursor: "pointer" }}>
+                      <label className="admin-select-all">
                         <input
                           type="checkbox"
                           checked={
@@ -1438,15 +1443,16 @@ export default function AdminClient() {
                     </button>
                   </div>
 
-                  <div className="admin-toolbar" style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", marginBottom: "1rem", alignItems: "center" }}>
+                  <div className="admin-toolbar">
                     <input
                       type="search"
+                      className="admin-search"
                       placeholder="Search events…"
                       value={searchQuery}
                       onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
-                      style={{ flex: "1 1 200px", minWidth: "160px" }}
                     />
                     <select
+                      className="admin-filter"
                       value={statusFilter}
                       onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
                     >
@@ -1615,15 +1621,16 @@ export default function AdminClient() {
                   </div>
 
                   {activeTab === "news" && (
-                    <div className="admin-toolbar" style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", marginBottom: "1rem", alignItems: "center" }}>
+                    <div className="admin-toolbar">
                       <input
                         type="search"
+                        className="admin-search"
                         placeholder="Search news…"
                         value={searchQuery}
                         onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
-                        style={{ flex: "1 1 200px", minWidth: "160px" }}
                       />
                       <select
+                        className="admin-filter"
                         value={statusFilter}
                         onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
                       >
@@ -1724,15 +1731,16 @@ export default function AdminClient() {
               {activeTab === "reports" && (
                 <section aria-labelledby="admin-section-heading">
                   <h2 id="admin-section-heading">Player Reports</h2>
-                  <div className="admin-toolbar" style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", marginBottom: "1rem", alignItems: "center" }}>
+                  <div className="admin-toolbar">
                     <input
                       type="search"
+                      className="admin-search"
                       placeholder="Search reports…"
                       value={searchQuery}
                       onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
-                      style={{ flex: "1 1 200px", minWidth: "160px" }}
                     />
                     <select
+                      className="admin-filter"
                       value={statusFilter}
                       onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
                     >
