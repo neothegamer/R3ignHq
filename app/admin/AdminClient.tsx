@@ -1518,7 +1518,7 @@ export default function AdminClient() {
                   setEditing(false);
                   setPage(1);
                   setSearchQuery("");
-                  setStatusFilter(tab.id === "registrations" ? "pending" : "all");
+                  setStatusFilter("all");
                   setSelectedIds(new Set());
                 }}
               >
