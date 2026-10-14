@@ -62,7 +62,7 @@ export default async function PlayerProfilePage({ params }: PageProps) {
   ] = await Promise.all([
     supabase.auth.getUser(),
     supabase
-      .from("game_accounts")
+      .from("public_game_accounts")
       .select("game, ign, game_uid, verification_status")
       .eq("profile_id", profile.id),
     supabase
