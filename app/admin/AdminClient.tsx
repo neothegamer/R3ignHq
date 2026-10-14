@@ -669,6 +669,63 @@ export default function AdminClient() {
     );
   }
 
+  function bulkRevokeRegistrations() {
+    const ids = [...selectedIds];
+    if (ids.length === 0) return;
+    const targetRegs = registrations.filter((r) => ids.includes(r.id) && r.status === "approved");
+    if (targetRegs.length === 0) return;
+    void runConfirmed(
+      ,
+      async () => {
+        const targetIds = targetRegs.map((r) => r.id);
+        const previous = registrations;
+        setRegistrations((items) =>
+          items.map((item) =>
+            targetIds.includes(item.id) ? { ...item, status: "pending" } : item
+          )
+        );
+        const { error } = await supabase
+          .from("registrations")
+          .update({ status: "pending" })
+          .in("id", targetIds);
+
+        if (error) {
+          setRegistrations(previous);
+          throw error;
+        }
+
+        for (const reg of targetRegs) {
+          try {
+            const { data: org } = await supabase
+              .from("organizations")
+              .select("id")
+              .ilike("name", reg.team_name.trim())
+              .maybeSingle();
+
+            if (org) {
+              try {
+                await supabase.from("organization_members").delete().eq("organization_id", org.id);
+              } catch {}
+              try {
+                await supabase.from("rankings").update({ organization_id: null }).eq("organization_id", org.id);
+              } catch {}
+              await supabase.from("organizations").delete().eq("id", org.id);
+              setOrganizations((prev) => prev.filter((o) => o.id !== org.id));
+            }
+          } catch (err) {
+            console.error("Failed to remove org during bulk revoke:", err);
+          }
+        }
+
+        setSelectedIds(new Set());
+        setNotice({
+          kind: "success",
+          text: ,
+        });
+      }
+    );
+  }
+
   function bulkUpdateRegistrations(status: "approved" | "rejected") {
     const ids = [...selectedIds];
     if (ids.length === 0) return;
@@ -1459,7 +1516,7 @@ export default function AdminClient() {
                   setEditing(false);
                   setPage(1);
                   setSearchQuery("");
-                  setStatusFilter("all");
+                  setStatusFilter(tab.id === "registrations" ? "pending" : "all");
                   setSelectedIds(new Set());
                 }}
               >
@@ -1528,16 +1585,45 @@ export default function AdminClient() {
                         Select page
                       </label>
                     )}
-                    {selectedIds.size > 0 && (
-                      <>
-                        <button type="button" className="btn btn-primary" disabled={busy} onClick={() => bulkUpdateRegistrations("approved")}>
-                          Approve selected ({selectedIds.size})
-                        </button>
-                        <button type="button" className="btn btn-ghost" disabled={busy} onClick={() => bulkUpdateRegistrations("rejected")}>
-                          Reject selected ({selectedIds.size})
-                        </button>
-                      </>
-                    )}
+                    {selectedIds.size > 0 && (() => {
+                      const selectedRegs = filteredRegistrations.filter((r) => selectedIds.has(r.id));
+                      const approvedCount = selectedRegs.filter((r) => r.status === "approved").length;
+                      const pendingCount = selectedRegs.filter((r) => r.status === "pending").length;
+                      const allApproved = approvedCount > 0 && pendingCount === 0;
+
+                      if (allApproved) {
+                        return (
+                          <button
+                            type="button"
+                            className="btn btn-ghost"
+                            disabled={busy}
+                            onClick={bulkRevokeRegistrations}
+                          >
+                            Revoke Approval ({approvedCount})
+                          </button>
+                        );
+                      }
+
+                      return (
+                        <>
+                          {pendingCount > 0 && (
+                            <>
+                              <button type="button" className="btn btn-primary" disabled={busy} onClick={() => bulkUpdateRegistrations("approved")}>
+                                Approve selected ({pendingCount})
+                              </button>
+                              <button type="button" className="btn btn-ghost" disabled={busy} onClick={() => bulkUpdateRegistrations("rejected")}>
+                                Reject selected ({pendingCount})
+                              </button>
+                            </>
+                          )}
+                          {approvedCount > 0 && (
+                            <button type="button" className="btn btn-ghost" disabled={busy} onClick={bulkRevokeRegistrations}>
+                              Revoke approval ({approvedCount})
+                            </button>
+                          )}
+                        </>
+                      );
+                    })()}
                   </div>
                   {filteredRegistrations.length === 0 ? (
                     <div style={{ padding: "2.5rem 1rem", textAlign: "center", border: "1px dashed var(--line)", background: "rgba(255,255,255,0.02)" }}>
@@ -1600,12 +1686,6 @@ export default function AdminClient() {
                           )}
                           {row.status === "approved" && (
                             <div className="admin-actions">
-                              <button type="button" className="btn btn-ghost" disabled={busy} onClick={() => syncSingleOrg(row)}>
-                                Sync to Organizations
-                              </button>
-                              <button type="button" className="btn btn-ghost" disabled={busy} onClick={() => removeRegistrationFromOrg(row)}>
-                                Remove from Org Page
-                              </button>
                               <button type="button" className="btn btn-ghost" disabled={busy} onClick={() => revokeApproval(row)}>
                                 Revoke Approval
                               </button>

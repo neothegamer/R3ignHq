@@ -4643,7 +4643,7 @@ body:has(.msg-layout) .site-footer {
 .admin-filter {
   min-height: 44px;
   padding: 0.65rem 0.85rem;
-  border: 1px solid var(--line);
+  border: none;
   border-radius: 0;
   background: var(--ink);
   color: var(--paper);
