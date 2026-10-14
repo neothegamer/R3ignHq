@@ -6532,3 +6532,8 @@ body:has(.msg-layout) .site-footer {
   .r3ign-messages .msg-bubble { animation: r3ign-message-in 180ms ease-out; }
   @keyframes r3ign-message-in { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 }
+
+/* /messages: restore the existing breadcrumb typography only. */
+.r3ign-messages .breadcrumb { font-family: var(--f-mono); font-size: 0.72rem; text-transform: uppercase; color: var(--steel); }
+.r3ign-messages .breadcrumb a { color: var(--steel); }
+.r3ign-messages .breadcrumb a:hover { color: var(--paper); }

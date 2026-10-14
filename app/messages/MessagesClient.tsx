@@ -999,18 +999,7 @@ export default function MessagesClient() {
                   </>
                 ) : inboxFilter !== "All" ? (
                   <p className="msg-empty-copy">{inboxFilter === "Unread" ? "You're all caught up." : "No blocked conversations."}</p>
-                ) : (
-                  <>
-                    <div className="msg-empty-icon" aria-hidden="true">💬</div>
-                    <p className="msg-empty-title">No conversations yet</p>
-                    <p className="msg-empty-copy">
-                      Start a chat from a Player Market listing — captains and free agents can reach out there.
-                    </p>
-                    <Link href="/player-market" className="btn btn-primary">
-                      Browse Player Market
-                    </Link>
-                  </>
-                )}
+                ) : null}
               </div>
             ) : (
               <>

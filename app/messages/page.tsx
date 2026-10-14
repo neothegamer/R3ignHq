@@ -21,15 +21,32 @@ export const metadata: Metadata = {
 
 export default function MessagesPage() {
   return (
-    <main id="main-content" className="r3ign-messages">
-      <div className="r3ign-messages-wrap">
-        <nav className="r3ign-messages-breadcrumb" aria-label="Breadcrumb"><Link href="/">Home</Link><span aria-hidden="true">›</span><span>Messages</span></nav>
-        <div className="r3ign-messages-title-row">
-          <div><h1>MESSAGES<span>.</span></h1><p>Your next teammate. Your next match. It starts here.</p></div>
-          <Link className="btn btn-primary r3ign-new-message" href="/player-market"><span aria-hidden="true">↗</span> New message</Link>
+    <main id="main-content">
+      <div className="page-header">
+        <div className="wrap">
+          <span className="breadcrumb">
+            <Link href="/">Home</Link> / Messages
+          </span>
+          <span className="eyebrow" style={{ marginTop: "1rem", display: "inline-flex" }}>
+            Direct Messages
+          </span>
+          <h1>Messages</h1>
+          <p>
+            Chat directly with players and organizations you&apos;ve connected
+            with through the Player Market.
+          </p>
+          <Link className="btn btn-primary r3ign-new-message" href="/player-market" style={{ marginTop: "1.25rem", display: "inline-flex" }}>
+            New message
+          </Link>
         </div>
-        <Suspense fallback={<div className="r3ign-messages-loading" role="status">Loading your inbox…</div>}><MessagesClient /></Suspense>
       </div>
+      <section className="section-tight r3ign-messages">
+        <div className="wrap r3ign-messages-wrap">
+          <Suspense fallback={<div className="r3ign-messages-loading" role="status">Loading your inbox…</div>}>
+            <MessagesClient />
+          </Suspense>
+        </div>
+      </section>
     </main>
   );
 }
