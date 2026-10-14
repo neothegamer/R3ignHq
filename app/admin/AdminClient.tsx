@@ -17,7 +17,18 @@ type Tab =
   | "news"
   | "awards"
   | "highlights"
+  | "reports"
   | "admins";
+
+type PlayerReport = {
+  id: string;
+  reason: string;
+  details: string | null;
+  status: "open" | "resolved" | "dismissed";
+  created_at: string | null;
+  reporter: ProfileInfo | ProfileInfo[] | null;
+  reported: ProfileInfo | ProfileInfo[] | null;
+};
 
 type Registration = {
   id: string;
@@ -132,6 +143,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "news", label: "News" },
   { id: "awards", label: "Awards" },
   { id: "highlights", label: "Highlights" },
+  { id: "reports", label: "Reports" },
   { id: "admins", label: "Manage Admins" },
 ];
 
@@ -259,6 +271,7 @@ export default function AdminClient() {
   const [awards, setAwards] = useState<AwardWinner[]>([]);
   const [highlights, setHighlights] = useState<Highlight[]>([]);
   const [admins, setAdmins] = useState<AdminUser[]>([]);
+  const [reports, setReports] = useState<PlayerReport[]>([]);
 
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
   const [editing, setEditing] = useState(false);
@@ -278,6 +291,7 @@ export default function AdminClient() {
       awardResult,
       highlightResult,
       adminResult,
+      reportResult,
       authResult,
     ] = await Promise.all([
       supabase
@@ -318,6 +332,12 @@ export default function AdminClient() {
           "profile_id,created_at,profile:profiles(display_name,league_id,player_id)"
         )
         .order("created_at", { ascending: true }),
+      supabase
+        .from("user_reports")
+        .select(
+          "id,reason,details,status,created_at,reporter:profiles!user_reports_reporter_id_fkey(display_name,league_id,player_id),reported:profiles!user_reports_reported_id_fkey(display_name,league_id,player_id)"
+        )
+        .order("created_at", { ascending: false }),
       supabase.auth.getUser(),
     ]);
 
@@ -328,6 +348,7 @@ export default function AdminClient() {
     setAwards((awardResult.data as AwardWinner[] | null) ?? []);
     setHighlights((highlightResult.data as Highlight[] | null) ?? []);
     setAdmins((adminResult.data as AdminUser[] | null) ?? []);
+    setReports((reportResult.data as PlayerReport[] | null) ?? []);
     setUserId(authResult.data.user?.id ?? null);
 
     const errors: Partial<Record<Tab, string>> = {};
@@ -338,6 +359,7 @@ export default function AdminClient() {
     if (awardResult.error) errors.awards = awardResult.error.message;
     if (highlightResult.error) errors.highlights = highlightResult.error.message;
     if (adminResult.error) errors.admins = adminResult.error.message;
+    if (reportResult.error) errors.reports = reportResult.error.message;
     if (authResult.error) {
       setNotice({ kind: "error", text: authResult.error.message });
     }
@@ -363,9 +385,39 @@ export default function AdminClient() {
       news: news.filter((row) => !row.published).length,
       awards: 0,
       highlights: 0,
+      reports: reports.filter((row) => row.status === "open").length,
       admins: 0,
     };
-  }, [registrations, gameAccounts, events, news]);
+  }, [registrations, gameAccounts, events, news, reports]);
+
+  const tabRowCount: Record<Tab, number> = {
+    registrations: registrations.length,
+    verifications: gameAccounts.filter((row) => row.verification_status === "pending").length,
+    events: events.length,
+    news: news.length,
+    awards: awards.length,
+    highlights: highlights.length,
+    reports: reports.length,
+    admins: admins.length,
+  };
+  const tabPageCount = pageCountFor(tabRowCount[activeTab]);
+
+  function changeReportStatus(row: PlayerReport, status: PlayerReport["status"]) {
+    const label = status === "resolved" ? "mark this report resolved" : status === "dismissed" ? "dismiss this report" : "reopen this report";
+    void runConfirmed(`Are you sure you want to ${label}?`, async () => {
+      const previous = reports;
+      setReports((rows) => rows.map((r) => (r.id === row.id ? { ...r, status } : r)));
+      const { error } = await supabase
+        .from("user_reports")
+        .update({ status, reviewed_by: userId, reviewed_at: new Date().toISOString() })
+        .eq("id", row.id);
+      if (error) {
+        setReports(previous);
+        throw error;
+      }
+      setNotice({ kind: "success", text: "Report updated." });
+    });
+  }
 
   async function runConfirmed(message: string, work: () => Promise<void>) {
     if (!(await confirm({ title: "Confirm admin action", message }))) return;
@@ -966,17 +1018,7 @@ export default function AdminClient() {
                   )}
                   <Pager
                     page={page}
-                    pageCount={pageCountFor(
-                      activeTab === "registrations"
-                        ? registrations.length
-                        : activeTab === "verifications"
-                          ? gameAccounts.filter((row) => row.verification_status === "pending").length
-                          : activeTab === "events"
-                            ? events.length
-                            : activeTab === "admins"
-                              ? admins.length
-                              : contentRows.length
-                    )}
+                    pageCount={tabPageCount}
                     onPage={setPage}
                   />
                 </section>
@@ -1014,17 +1056,7 @@ export default function AdminClient() {
                   )}
                   <Pager
                     page={page}
-                    pageCount={pageCountFor(
-                      activeTab === "registrations"
-                        ? registrations.length
-                        : activeTab === "verifications"
-                          ? gameAccounts.filter((row) => row.verification_status === "pending").length
-                          : activeTab === "events"
-                            ? events.length
-                            : activeTab === "admins"
-                              ? admins.length
-                              : contentRows.length
-                    )}
+                    pageCount={tabPageCount}
                     onPage={setPage}
                   />
                 </section>
@@ -1065,17 +1097,7 @@ export default function AdminClient() {
                   )}
                   <Pager
                     page={page}
-                    pageCount={pageCountFor(
-                      activeTab === "registrations"
-                        ? registrations.length
-                        : activeTab === "verifications"
-                          ? gameAccounts.filter((row) => row.verification_status === "pending").length
-                          : activeTab === "events"
-                            ? events.length
-                            : activeTab === "admins"
-                              ? admins.length
-                              : contentRows.length
-                    )}
+                    pageCount={tabPageCount}
                     onPage={setPage}
                   />
                 </section>
@@ -1161,19 +1183,60 @@ export default function AdminClient() {
                   )}
                   <Pager
                     page={page}
-                    pageCount={pageCountFor(
-                      activeTab === "registrations"
-                        ? registrations.length
-                        : activeTab === "verifications"
-                          ? gameAccounts.filter((row) => row.verification_status === "pending").length
-                          : activeTab === "events"
-                            ? events.length
-                            : activeTab === "admins"
-                              ? admins.length
-                              : contentRows.length
-                    )}
+                    pageCount={tabPageCount}
                     onPage={setPage}
                   />
+                </section>
+              )}
+
+              {activeTab === "reports" && (
+                <section aria-labelledby="admin-section-heading">
+                  <h2 id="admin-section-heading">Player Reports</h2>
+                  {reports.length === 0 ? (
+                    <p className="field-hint">No reports to review.</p>
+                  ) : (
+                    <div className="admin-card-list">
+                      {pageSlice(reports, page).map((row) => {
+                        const reported = profileInfo(row.reported);
+                        const reporter = profileInfo(row.reporter);
+                        return (
+                          <article className="admin-record" key={row.id}>
+                            <div className="admin-record-heading">
+                              <div>
+                                <span className={`admin-status is-${row.status === "open" ? "pending" : row.status === "resolved" ? "approved" : "rejected"}`}>
+                                  {row.status}
+                                </span>
+                                <h3>
+                                  {reported?.display_name || "Unnamed player"}{" "}
+                                  <span className="admin-muted">[{reported?.player_id || reported?.league_id || "—"}]</span>
+                                </h3>
+                              </div>
+                              <span className="admin-record-date">{dateLabel(row.created_at)}</span>
+                            </div>
+                            <dl className="admin-detail-grid">
+                              <div><dt>Reason</dt><dd>{row.reason}</dd></div>
+                              <div><dt>Reported by</dt><dd>{reporter?.display_name || "Unnamed player"} · {reporter?.player_id || reporter?.league_id || "—"}</dd></div>
+                            </dl>
+                            {row.details && <p><strong>Details:</strong> {row.details}</p>}
+                            <div className="admin-actions">
+                              {reported?.player_id && (
+                                <a className="btn btn-ghost" href={`/player/${reported.player_id}`} target="_blank" rel="noreferrer">View Profile</a>
+                              )}
+                              {row.status === "open" ? (
+                                <>
+                                  <button className="btn btn-primary" disabled={busy} onClick={() => changeReportStatus(row, "resolved")}>Mark Resolved</button>
+                                  <button className="btn btn-ghost" disabled={busy} onClick={() => changeReportStatus(row, "dismissed")}>Dismiss</button>
+                                </>
+                              ) : (
+                                <button className="btn btn-ghost" disabled={busy} onClick={() => changeReportStatus(row, "open")}>Reopen</button>
+                              )}
+                            </div>
+                          </article>
+                        );
+                      })}
+                    </div>
+                  )}
+                  <Pager page={page} pageCount={pageCountFor(reports.length)} onPage={setPage} />
                 </section>
               )}
 
@@ -1228,17 +1291,7 @@ export default function AdminClient() {
                   )}
                   <Pager
                     page={page}
-                    pageCount={pageCountFor(
-                      activeTab === "registrations"
-                        ? registrations.length
-                        : activeTab === "verifications"
-                          ? gameAccounts.filter((row) => row.verification_status === "pending").length
-                          : activeTab === "events"
-                            ? events.length
-                            : activeTab === "admins"
-                              ? admins.length
-                              : contentRows.length
-                    )}
+                    pageCount={tabPageCount}
                     onPage={setPage}
                   />
                 </section>

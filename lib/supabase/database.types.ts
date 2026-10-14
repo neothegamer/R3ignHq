@@ -520,6 +520,7 @@ export type Database = {
           created_by: string | null
           id: string
           published: boolean
+          slug: string | null
           title: string
         }
         Insert: {
@@ -530,6 +531,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           published?: boolean
+          slug?: string | null
           title: string
         }
         Update: {
@@ -540,6 +542,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           published?: boolean
+          slug?: string | null
           title?: string
         }
         Relationships: [
@@ -987,6 +990,9 @@ export type Database = {
           reason: string
           reported_id: string
           reporter_id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
         }
         Insert: {
           conversation_peer_id?: string | null
@@ -996,6 +1002,9 @@ export type Database = {
           reason: string
           reported_id: string
           reporter_id: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
         }
         Update: {
           conversation_peer_id?: string | null
@@ -1005,6 +1014,9 @@ export type Database = {
           reason?: string
           reported_id?: string
           reporter_id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
         }
         Relationships: [
           {
