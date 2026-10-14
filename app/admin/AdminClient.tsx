@@ -284,7 +284,7 @@ export default function AdminClient() {
     {}
   );
   const [notice, setNotice] = useState<{
-    kind: "success" | "error";
+    kind: "success" | "error" | "info";
     text: string;
   } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -411,6 +411,7 @@ export default function AdminClient() {
     return {
       registrations: registrations.filter((row) => row.status === "pending")
         .length,
+      organizations: 0,
       verifications: gameAccounts.filter(
         (row) => row.verification_status === "pending"
       ).length,
@@ -488,6 +489,7 @@ export default function AdminClient() {
 
   const tabRowCount: Record<Tab, number> = {
     registrations: filteredRegistrations.length,
+    organizations: filteredOrganizations.length,
     verifications: filteredVerifications.length,
     events: filteredEvents.length,
     news: filteredNews.length,
@@ -1408,15 +1410,17 @@ export default function AdminClient() {
 
   return (
     <main id="main-content" className="admin-page">
-      <div className="page-header">
-        <div className="wrap">
-          <span className="eyebrow">R3IGN HQ Operations</span>
-          <h1>Admin Panel</h1>
-          <p>Review submissions and manage league content.</p>
+      <div className="page-header" style={{ paddingBlock: "1.25rem 1rem" }}>
+        <div className="wrap" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "0.75rem" }}>
+          <div>
+            <span className="eyebrow" style={{ fontSize: "0.68rem" }}>R3IGN HQ Operations</span>
+            <h1 style={{ fontSize: "clamp(1.75rem, 3.5vw, 2.4rem)", marginTop: "0.25rem", marginBottom: 0 }}>Admin Panel</h1>
+          </div>
+          <p style={{ marginTop: 0, marginBottom: 0, fontSize: "0.85rem", color: "var(--paper-dim)" }}>Review submissions and manage league content.</p>
         </div>
       </div>
 
-      <section className="section-tight">
+      <section className="section-tight" style={{ paddingTop: "0.85rem" }}>
         <div className="wrap">
           {notice && (
             <p
@@ -1435,6 +1439,17 @@ export default function AdminClient() {
                 role="tab"
                 aria-selected={activeTab === tab.id}
                 className={`admin-tab${activeTab === tab.id ? " is-active" : ""}`}
+                style={
+                  activeTab === tab.id
+                    ? {
+                        borderColor: "var(--amber)",
+                        color: "var(--paper)",
+                        background: "rgba(255, 255, 255, 0.08)",
+                        fontWeight: 600,
+                        boxShadow: "inset 0 -2px 0 var(--amber)",
+                      }
+                    : undefined
+                }
                 onClick={() => {
                   setActiveTab(tab.id);
                   setNotice(null);
@@ -1442,16 +1457,23 @@ export default function AdminClient() {
                   setEditing(false);
                   setPage(1);
                   setSearchQuery("");
-                  setStatusFilter("all");
+                  setStatusFilter(tab.id === "registrations" ? "pending" : "all");
                   setSelectedIds(new Set());
                 }}
               >
                 {tab.label}
-                {counts[tab.id] > 0 && (
+                {counts[tab.id] > 0 ? (
                   <span className="admin-tab-count" aria-label={`${counts[tab.id]} pending`}>
                     {counts[tab.id]}
                   </span>
-                )}
+                ) : tab.id === "organizations" && organizations.length > 0 ? (
+                  <span
+                    className="admin-tab-count"
+                    style={{ background: "rgba(255,255,255,0.08)", color: "var(--paper-dim)" }}
+                  >
+                    {organizations.length}
+                  </span>
+                ) : null}
               </button>
             ))}
           </div>
@@ -1516,7 +1538,22 @@ export default function AdminClient() {
                     )}
                   </div>
                   {filteredRegistrations.length === 0 ? (
-                    <p className="field-hint">No registrations match your filters.</p>
+                    <div style={{ padding: "2.5rem 1rem", textAlign: "center", border: "1px dashed var(--line)", background: "rgba(255,255,255,0.02)" }}>
+                      <p className="admin-muted" style={{ marginBottom: "0.85rem", fontSize: "0.95rem" }}>
+                        {statusFilter === "pending" && registrations.length > 0
+                          ? `No pending registrations (${registrations.filter((r) => r.status === "approved").length} approved).`
+                          : "No registrations match your filters."}
+                      </p>
+                      {statusFilter === "pending" && registrations.length > 0 && (
+                        <button
+                          type="button"
+                          className="btn btn-ghost"
+                          onClick={() => setStatusFilter("all")}
+                        >
+                          View All Registrations
+                        </button>
+                      )}
+                    </div>
                   ) : (
                     <div className="admin-card-list">
                       {pageSlice(filteredRegistrations, page).map((row) => (
