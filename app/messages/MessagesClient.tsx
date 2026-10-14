@@ -287,6 +287,13 @@ export default function MessagesClient() {
   const [mutedIds, setMutedIds] = useState<Set<string>>(new Set());
   const [muteBusy, setMuteBusy] = useState(false);
   const [convQuery, setConvQuery] = useState("");
+  const [inboxFilter, setInboxFilter] = useState<"All" | "Unread" | "Blocked">("All");
+  const [detailsOpen, setDetailsOpen] = useState(true);
+  const [emojiOpen, setEmojiOpen] = useState(false);
+  const [messageQuery, setMessageQuery] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const composeRef = useRef<HTMLTextAreaElement>(null);
+  const unreadTotal = Object.values(conversations).reduce((sum, c) => sum + (mutedIds.has(c.id) || blockedIds.has(c.id) ? 0 : c.unread), 0);
 
   const draftTo = searchParams.get("to");
   const draftName = searchParams.get("name");
@@ -313,8 +320,8 @@ export default function MessagesClient() {
       setFilePreview(null);
       return;
     }
-    if (!f.type.startsWith("image/")) {
-      setSendError("Only image attachments are supported.");
+    if (!ACCEPT.split(",").includes(f.type)) {
+      setSendError("Choose a JPG, PNG, WebP, or GIF image.");
       return;
     }
     if (f.size > MAX_BYTES) {
@@ -401,7 +408,7 @@ export default function MessagesClient() {
         ensureConv(
           map,
           draftTo,
-          draftName ? decodeURIComponent(draftName) : "Player"
+          draftName || "Player"
         );
         if (draftListing) map[draftTo].listingId = draftListing;
       }
@@ -472,7 +479,8 @@ export default function MessagesClient() {
   }, []);
 
   useEffect(() => {
-    if (!userId || !activeId) return;
+    if (!userId || !activeId || document.visibilityState !== "visible") return;
+    if (window.matchMedia("(max-width: 820px)").matches && !threadOpen) return;
     let cancelled = false;
     (async () => {
       const now = new Date().toISOString();
@@ -494,7 +502,7 @@ export default function MessagesClient() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId, activeId]);
+  }, [userId, activeId, threadOpen, conversations[activeId ?? ""]?.unread]);
 
   useEffect(() => {
     if (!userId || !activeId) {
@@ -591,6 +599,25 @@ export default function MessagesClient() {
   );
 
   const active = activeId ? conversations[activeId] : null;
+  const visibleConversations = inboxFilter === "Blocked"
+    ? filteredBlockedList
+    : filteredConvList.filter(c => inboxFilter !== "Unread" || (!mutedIds.has(c.id) && c.unread > 0));
+  const visibleMessages = active?.messages.filter(m => !messageQuery.trim() || (!m.deleted_at && m.body.toLowerCase().includes(messageQuery.trim().toLowerCase()))) ?? [];
+  const sharedImages = active?.messages.filter(m => !m.deleted_at && m.attachment_path && m.attachment_type?.startsWith("image/")) ?? [];
+
+  useEffect(() => {
+    setCompose(""); clearFile(); setEmojiOpen(false); setMessageQuery("");
+    setSearchOpen(false); setMenuMsgId(null); setEditingId(null); setSendError(null);
+  // Reset conversation-specific inputs when switching recipients.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeId]);
+
+  useEffect(() => {
+    if (!reportOpen) return;
+    const close = (event: KeyboardEvent) => { if (event.key === "Escape" && !reportBusy) setReportOpen(false); };
+    document.addEventListener("keydown", close);
+    return () => document.removeEventListener("keydown", close);
+  }, [reportOpen, reportBusy]);
 
   function signalTyping() {
     if (!userId || !activeId || !typingChannelRef.current) return;
@@ -935,11 +962,11 @@ export default function MessagesClient() {
       )}
 
       <div
-        className={`msg-layout${threadOpen ? " is-thread-open" : ""}`}
+        className={`msg-layout${threadOpen ? " is-thread-open" : ""}${detailsOpen && active ? " has-details" : ""}`}
         id="msg-layout"
       >
         <div className="msg-list-pane">
-          <div className="msg-list-head">Conversations</div>
+          <div className="msg-list-head"><span>Inbox <span className="r3ign-inbox-count">{unreadTotal}</span></span><small>{convList.length} CONVERSATIONS</small></div>
           <div className="msg-conv-search">
             <input
               type="search"
@@ -949,8 +976,11 @@ export default function MessagesClient() {
               aria-label="Search conversations"
             />
           </div>
+          <div className="r3ign-inbox-tabs" role="group" aria-label="Filter conversations">
+            {(["All", "Unread", "Blocked"] as const).map(tab => <button type="button" key={tab} className={`btn btn-ghost${inboxFilter === tab ? " is-selected" : ""}`} aria-pressed={inboxFilter === tab} onClick={() => setInboxFilter(tab)}>{tab}{tab === "Blocked" && blockedConvList.length > 0 ? ` (${blockedConvList.length})` : ""}</button>)}
+          </div>
           <div id="msg-conv-list">
-            {filteredConvList.length === 0 && filteredBlockedList.length === 0 ? (
+            {visibleConversations.length === 0 ? (
               <div className="msg-empty-panel">
                 {convQuery.trim() ? (
                   <>
@@ -967,6 +997,8 @@ export default function MessagesClient() {
                       Clear search
                     </button>
                   </>
+                ) : inboxFilter !== "All" ? (
+                  <p className="msg-empty-copy">{inboxFilter === "Unread" ? "You're all caught up." : "No blocked conversations."}</p>
                 ) : (
                   <>
                     <div className="msg-empty-icon" aria-hidden="true">💬</div>
@@ -982,7 +1014,7 @@ export default function MessagesClient() {
               </div>
             ) : (
               <>
-                {filteredConvList.map((c) => {
+                {visibleConversations.map((c) => {
                   const last = c.messages[c.messages.length - 1];
                   const preview = last?.deleted_at
                     ? "Message deleted"
@@ -996,11 +1028,16 @@ export default function MessagesClient() {
                       key={c.id}
                       type="button"
                       className={`msg-conv-item${activeId === c.id ? " is-active" : ""}${c.unread > 0 ? " has-unread" : ""}`}
+                      aria-label={`Open conversation with ${c.name}`}
+                      aria-pressed={activeId === c.id}
+                      disabled={sending}
                       onClick={() => {
                         setActiveId(c.id);
                         setThreadOpen(true);
                       }}
                     >
+                      <span className="r3ign-avatar" aria-hidden="true">{c.name.slice(0, 2).toUpperCase()}{isOnline(c.id) && <i />}</span>
+                      <div className="r3ign-conv-copy">
                       <div className="msg-conv-name">
                         <span>{c.name}</span>
                         {mutedIds.has(c.id) && (
@@ -1013,46 +1050,16 @@ export default function MessagesClient() {
                         )}
                       </div>
                       <div className="msg-conv-preview">{preview}</div>
-                      {last && (
-                        <div className="msg-conv-time">
-                          {fmtTime(last.created_at)}
-                        </div>
-                      )}
+                      {last && <time className="msg-conv-time">{fmtTime(last.created_at)}</time>}
+                      {blockedIds.has(c.id) && <span className="msg-blocked-tag">Blocked</span>}
+                      </div>
                     </button>
                   );
                 })}
-                {filteredBlockedList.length > 0 && (
-                  <>
-                    <div className="msg-list-head msg-list-head-blocked">
-                      Blocked
-                    </div>
-                    {filteredBlockedList.map((c) => {
-                      const last = c.messages[c.messages.length - 1];
-                      return (
-                        <button
-                          key={c.id}
-                          type="button"
-                          className={`msg-conv-item is-blocked${activeId === c.id ? " is-active" : ""}`}
-                          onClick={() => {
-                            setActiveId(c.id);
-                            setThreadOpen(true);
-                          }}
-                        >
-                          <div className="msg-conv-name">
-                            <span>{c.name}</span>
-                            <span className="msg-blocked-tag">Blocked</span>
-                          </div>
-                          <div className="msg-conv-preview">
-                            {last?.body?.trim() || "Blocked conversation"}
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </>
-                )}
               </>
             )}
           </div>
+          <div className="r3ign-list-footer"><span aria-hidden="true">◇</span> A community built on fair play.</div>
         </div>
 
         <div className="msg-thread-pane">
@@ -1080,13 +1087,17 @@ export default function MessagesClient() {
                 >
                   ←
                 </button>
+                <span className="r3ign-avatar" aria-hidden="true">{active.name.slice(0, 2).toUpperCase()}{isOnline(active.id) && <i />}</span>
                 <div className="msg-thread-head-main">
                   <div className="msg-thread-title">{active.name}</div>
-                  <div className="msg-thread-sub">
-                    {isOnline(active.id) ? "Online" : "Offline"}
+                  <div className={`msg-thread-sub${isOnline(active.id) ? " is-online" : ""}`}>
+                    {isOnline(active.id) ? "Online now" : "Offline"}
                   </div>
                 </div>
                 <div className="msg-thread-actions">
+                  <button type="button" className="msg-thread-action-btn" title="Search this conversation" aria-label="Search this conversation" aria-expanded={searchOpen} onClick={() => { setSearchOpen(v => !v); setMessageQuery(""); }}>⌕</button>
+                  <button type="button" className="msg-thread-action-btn r3ign-details-toggle" title="Conversation details" aria-label="Toggle conversation details" aria-expanded={detailsOpen} onClick={() => setDetailsOpen(v => !v)}>ⓘ</button>
+                  <details className="r3ign-options"><summary className="msg-thread-action-btn" aria-label="Conversation options" title="Conversation options">⋯</summary><div className="r3ign-options-menu">
                   <button
                     type="button"
                     className="msg-thread-action-btn"
@@ -1133,8 +1144,11 @@ export default function MessagesClient() {
                       {blockBusy ? "…" : "Block"}
                     </button>
                   )}
+                  </div></details>
                 </div>
               </div>
+              <div className="r3ign-context"><span aria-hidden="true">◇</span>{blockedIds.has(active.id) ? "You have blocked this player" : mutedIds.has(active.id) ? "Private conversation · Muted" : "Private conversation"}{active.listingId && <Link href="/player-market">Player Market ↗</Link>}</div>
+              {searchOpen && <label className="r3ign-thread-search"><span>Search</span><input type="search" value={messageQuery} onChange={e => setMessageQuery(e.target.value)} placeholder="Search this conversation…" aria-label="Search this conversation" autoFocus /><button type="button" className="msg-thread-action-btn" aria-label="Close conversation search" onClick={() => { setSearchOpen(false); setMessageQuery(""); }}>×</button></label>}
               {reportOpen && (
                 <div
                   className="r3ign-confirm-overlay is-open"
@@ -1212,16 +1226,16 @@ export default function MessagesClient() {
                   {active.name} is typing…
                 </div>
               )}
-              <div className="msg-thread-body" id="msg-thread-body">
-                {active.messages.length === 0 ? (
+              <div className="msg-thread-body" id="msg-thread-body" role="log" aria-label="Conversation messages" aria-live="polite">
+                {visibleMessages.length === 0 ? (
                   <div className="msg-empty-panel msg-empty-panel--inline">
-                    <p className="msg-empty-title">No messages yet</p>
+                    <p className="msg-empty-title">{messageQuery ? "No matching messages" : "No messages yet"}</p>
                     <p className="msg-empty-copy">
-                      Say hello to {active.name}. Keep it professional — this is a competitive network.
+                      {messageQuery ? "Try another search." : `Say hello to ${active.name}. Keep it professional — this is a competitive network.`}
                     </p>
                   </div>
                 ) : (
-                  active.messages.map((m) => {
+                  visibleMessages.map((m) => {
                     const mine = m.sender_id === userId;
                     const isEditing = editingId === m.id;
                     const menuOpen = menuMsgId === m.id;
@@ -1408,8 +1422,13 @@ export default function MessagesClient() {
                     <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
                   </svg>
                 </button>
+                <button type="button" className="msg-attach-btn" title="Add emoji" aria-label="Add emoji" aria-expanded={emojiOpen} disabled={sending || blockedIds.has(active.id)} onClick={() => setEmojiOpen(v => !v)}>☺</button>
+                {emojiOpen && <div className="r3ign-emoji-picker">{["🔥", "🙌", "👋", "🎮", "✅", "💪"].map(emoji => <button type="button" className="btn btn-ghost" aria-label={`Insert ${emoji}`} key={emoji} onClick={() => { setCompose(value => (value + emoji).slice(0, 2000)); setEmojiOpen(false); composeRef.current?.focus(); }}>{emoji}</button>)}</div>}
                 <textarea
-                  rows={1}
+                  ref={composeRef}
+                  aria-label="Write a message"
+                  rows={2}
+                  onKeyDown={event => { if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); event.currentTarget.form?.requestSubmit(); } }}
                   placeholder={
                     blockedIds.has(active.id)
                       ? "Unblock to send messages…"
@@ -1432,13 +1451,22 @@ export default function MessagesClient() {
                     (!compose.trim() && !file)
                   }
                 >
-                  {sending ? "…" : "Send"}
+                  {sending ? "Sending…" : "Send message ↗"}
                 </button>
               </form>
+              <div className="r3ign-compose-hint">Keep it competitive. Keep it respectful.</div>
             </div>
           )}
         </div>
+        {detailsOpen && active && <aside className="r3ign-details" aria-label="Conversation details">
+          <div className="r3ign-details-heading">CONVERSATION DETAILS<button type="button" className="msg-thread-action-btn" aria-label="Close conversation details" onClick={() => setDetailsOpen(false)}>×</button></div>
+          <div className="r3ign-profile"><span className="r3ign-avatar r3ign-avatar-large" aria-hidden="true">{active.name.slice(0, 2).toUpperCase()}</span><h2>{active.name}</h2><p>{isOnline(active.id) ? "Online now" : "Offline"}</p><span className="r3ign-player-badge">R3IGN MEMBER</span></div>
+          {active.listingId && <div className="r3ign-detail-section"><h3>PLAYER MARKET</h3><Link href="/player-market">View Player Market ↗</Link></div>}
+          <div className="r3ign-detail-section"><h3>SHARED IMAGES <span>{sharedImages.length}</span></h3>{sharedImages.length ? sharedImages.map(m => m.attachment_path ? <MessageAttachment key={m.id} path={m.attachment_path} /> : null) : <p>No shared images.</p>}</div>
+          <button type="button" className="btn btn-ghost r3ign-detail-report" onClick={() => setReportOpen(true)}>Report conversation</button>
+        </aside>}
       </div>
+      <footer className="r3ign-messages-footer"><span>{convList.length} conversations · {unreadTotal} unread</span><span>PLAY WITH PURPOSE. CONNECT WITH R3IGN.</span><Link href="/player-market">Player Market ↗</Link></footer>
     </>
   );
 }
