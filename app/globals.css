@@ -4710,6 +4710,26 @@ body:has(.msg-layout) .site-footer {
   font-size: clamp(1.15rem, 2vw, 1.35rem);
 }
 
+/* Tighten vertical space above section titles on admin only */
+.admin-page .section-tight {
+  padding-block: clamp(1rem, 2.5vw, 1.75rem) clamp(2rem, 4vw, 3.5rem);
+}
+.admin-page .admin-tabs {
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+.admin-page .admin-panel {
+  padding-top: clamp(0.75rem, 2vw, 1.1rem);
+}
+.admin-page .admin-panel > section > h2,
+.admin-page .admin-section-heading {
+  margin-top: 0;
+}
+.admin-page .admin-panel > section > h2,
+.admin-page .admin-section-heading h2 {
+  margin-bottom: 0.85rem;
+}
+
 /* Four-section navigation and page-scoped search */
 .site-header {
   overflow: visible;
