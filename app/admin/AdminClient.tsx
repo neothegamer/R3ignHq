@@ -134,6 +134,9 @@ type Draft = {
   match_label: string;
   video_url: string;
   storage_path: string;
+  location: string;
+  start_time: string;
+  end_time: string;
 };
 
 const TABS: { id: Tab; label: string }[] = [
@@ -162,6 +165,9 @@ const EMPTY_DRAFT: Draft = {
   match_label: "",
   video_url: "",
   storage_path: "",
+  location: "",
+  start_time: "",
+  end_time: "",
 };
 
 function dateLabel(value: string | null) {
@@ -626,7 +632,7 @@ export default function AdminClient() {
     setEditing(false);
   }
 
-  function startEdit(row: NewsPost | AwardWinner | Highlight) {
+  function startEdit(row: NewsPost | AwardWinner | Highlight | EventRow) {
     if ("body" in row) {
       setDraft({
         ...EMPTY_DRAFT,
@@ -646,6 +652,18 @@ export default function AdminClient() {
         context: row.context ?? "",
         season: row.season ?? "",
       });
+    } else if ("start_time" in row) {
+      // EventRow
+      setDraft({
+        ...EMPTY_DRAFT,
+        id: row.id,
+        title: row.title,
+        description: row.description ?? "",
+        league: row.league ?? "",
+        location: row.location ?? "",
+        start_time: row.start_time ? row.start_time.slice(0, 16) : "",
+        end_time: row.end_time ? row.end_time.slice(0, 16) : "",
+      });
     } else {
       setDraft({
         ...EMPTY_DRAFT,
@@ -663,6 +681,13 @@ export default function AdminClient() {
 
   function updateDraft<K extends keyof Draft>(key: K, value: Draft[K]) {
     setDraft((current) => ({ ...current, [key]: value }));
+  }
+
+  function toIsoOrNull(value: string): string | null {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    const d = new Date(trimmed);
+    return Number.isNaN(d.getTime()) ? null : d.toISOString();
   }
 
   async function submitContent(event: FormEvent<HTMLFormElement>) {
@@ -686,10 +711,23 @@ export default function AdminClient() {
       setNotice({ kind: "error", text: "Highlight title is required." });
       return;
     }
+    if (tab === "events" && (!draft.title.trim() || !draft.start_time.trim())) {
+      setNotice({
+        kind: "error",
+        text: "Event title and start time are required.",
+      });
+      return;
+    }
 
     const action = isEdit ? "Update" : "Create";
     const label =
-      tab === "news" ? "news post" : tab === "awards" ? "award" : "highlight";
+      tab === "news"
+        ? "news post"
+        : tab === "awards"
+          ? "award"
+          : tab === "events"
+            ? "event"
+            : "highlight";
     await runConfirmed(`${action} this ${label}?`, async () => {
       const createdAt = new Date().toISOString();
       if (tab === "news") {
@@ -852,16 +890,80 @@ export default function AdminClient() {
             )
           );
         }
+      } else if (tab === "events") {
+        const startIso = toIsoOrNull(draft.start_time);
+        if (!startIso) {
+          throw new Error("Start time is invalid.");
+        }
+        const endIso = toIsoOrNull(draft.end_time);
+        const payload = {
+          title: draft.title.trim(),
+          description: draft.description.trim() || null,
+          league: draft.league || null,
+          location: draft.location.trim() || null,
+          start_time: startIso,
+          end_time: endIso,
+        };
+        if (isEdit && id) {
+          const previous = events;
+          setEvents((items) =>
+            items.map((item) =>
+              item.id === id ? { ...item, ...payload } : item
+            )
+          );
+          const { data, error } = await supabase
+            .from("events")
+            .update(payload)
+            .eq("id", id)
+            .select("*")
+            .single();
+          if (error) {
+            setEvents(previous);
+            throw error;
+          }
+          setEvents((items) =>
+            items.map((item) =>
+              item.id === id ? (data as EventRow) : item
+            )
+          );
+        } else {
+          const temp: EventRow = {
+            id: crypto.randomUUID(),
+            ...payload,
+            ended_at: null,
+          };
+          setEvents((items) => [temp, ...items]);
+          const { data, error } = await supabase
+            .from("events")
+            .insert(payload)
+            .select("*")
+            .single();
+          if (error) {
+            setEvents((items) => items.filter((item) => item.id !== temp.id));
+            throw error;
+          }
+          setEvents((items) =>
+            items.map((item) =>
+              item.id === temp.id ? (data as EventRow) : item
+            )
+          );
+        }
       }
       setDraft(EMPTY_DRAFT);
       setEditing(false);
     });
   }
 
-  function deleteContent(row: NewsPost | AwardWinner | Highlight) {
+  function deleteContent(row: NewsPost | AwardWinner | Highlight | EventRow) {
     const tab = activeTab;
     const label =
-      tab === "news" ? "news post" : tab === "awards" ? "award" : "highlight";
+      tab === "news"
+        ? "news post"
+        : tab === "awards"
+          ? "award"
+          : tab === "events"
+            ? "event"
+            : "highlight";
     void runConfirmed(`Delete this ${label} permanently?`, async () => {
       if (tab === "news") {
         const previous = news;
@@ -902,11 +1004,37 @@ export default function AdminClient() {
           setHighlights(previous);
           throw error;
         }
+      } else if (tab === "events") {
+        const previous = events;
+        setEvents((items) => items.filter((item) => item.id !== row.id));
+        const { error } = await supabase
+          .from("events")
+          .delete()
+          .eq("id", row.id)
+          .select("id")
+          .single();
+        if (error) {
+          setEvents(previous);
+          throw error;
+        }
       }
       if (draft.id === row.id) {
         setDraft(EMPTY_DRAFT);
         setEditing(false);
       }
+      // Clamp page if we deleted the last item on the current page
+      setPage((p) => {
+        const remaining =
+          tab === "events"
+            ? events.length - 1
+            : tab === "news"
+              ? news.length - 1
+              : tab === "awards"
+                ? awards.length - 1
+                : highlights.length - 1;
+        const maxPage = Math.max(1, Math.ceil(remaining / PAGE_SIZE));
+        return Math.min(p, maxPage);
+      });
     });
   }
 
@@ -1064,7 +1192,84 @@ export default function AdminClient() {
 
               {activeTab === "events" && (
                 <section aria-labelledby="admin-section-heading">
-                  <h2 id="admin-section-heading">Events</h2>
+                  <div className="admin-section-heading">
+                    <h2 id="admin-section-heading">Events</h2>
+                    <button type="button" className="btn btn-primary" onClick={startCreate}>
+                      Add New
+                    </button>
+                  </div>
+
+                  <form className="admin-editor" onSubmit={submitContent}>
+                    <h3>{editing ? "Edit event" : "Create event"}</h3>
+                    <label>
+                      Title
+                      <input
+                        value={draft.title}
+                        onChange={(e) => updateDraft("title", e.target.value)}
+                        required
+                        maxLength={200}
+                      />
+                    </label>
+                    <label>
+                      Description
+                      <textarea
+                        value={draft.description}
+                        onChange={(e) => updateDraft("description", e.target.value)}
+                        rows={3}
+                      />
+                    </label>
+                    <div className="admin-form-grid">
+                      <label>
+                        League
+                        <select
+                          value={draft.league}
+                          onChange={(e) => updateDraft("league", e.target.value)}
+                        >
+                          <option value="">General</option>
+                          <option value="rcml">RCML</option>
+                          <option value="rfcl">RFCL</option>
+                          <option value="rbsl">RBSL</option>
+                        </select>
+                      </label>
+                      <label>
+                        Location
+                        <input
+                          value={draft.location}
+                          onChange={(e) => updateDraft("location", e.target.value)}
+                          maxLength={200}
+                          placeholder="Online / Discord / etc."
+                        />
+                      </label>
+                      <label>
+                        Start time
+                        <input
+                          type="datetime-local"
+                          value={draft.start_time}
+                          onChange={(e) => updateDraft("start_time", e.target.value)}
+                          required
+                        />
+                      </label>
+                      <label>
+                        End time
+                        <input
+                          type="datetime-local"
+                          value={draft.end_time}
+                          onChange={(e) => updateDraft("end_time", e.target.value)}
+                        />
+                      </label>
+                    </div>
+                    <div className="admin-actions">
+                      <button type="submit" className="btn btn-primary" disabled={busy}>
+                        {editing ? "Save Changes" : "Create"}
+                      </button>
+                      {editing && (
+                        <button type="button" className="btn btn-ghost" onClick={startCreate}>
+                          Cancel Edit
+                        </button>
+                      )}
+                    </div>
+                  </form>
+
                   {events.length === 0 ? (
                     <p className="field-hint">No events found.</p>
                   ) : (
@@ -1073,24 +1278,62 @@ export default function AdminClient() {
                         <article className="admin-record" key={row.id}>
                           <div className="admin-record-heading">
                             <div>
-                              <span className={`admin-status ${row.ended_at ? "is-rejected" : "is-pending"}`}>
+                              <span
+                                className={`admin-status ${
+                                  row.ended_at ? "is-rejected" : "is-pending"
+                                }`}
+                              >
                                 {row.ended_at ? "ended" : "not ended"}
                               </span>
                               <h3>{row.title}</h3>
                             </div>
-                            <span className="admin-record-date">{dateLabel(row.start_time)}</span>
+                            <span className="admin-record-date">
+                              {dateLabel(row.start_time)}
+                            </span>
                           </div>
                           {row.description && <p>{row.description}</p>}
                           <dl className="admin-detail-grid">
-                            <div><dt>League</dt><dd>{row.league?.toUpperCase() || "General"}</dd></div>
-                            <div><dt>Location</dt><dd>{row.location || "—"}</dd></div>
-                            <div><dt>Scheduled end</dt><dd>{dateLabel(row.end_time)}</dd></div>
-                          </dl>
-                          {!row.ended_at && (
-                            <div className="admin-actions">
-                              <button className="btn btn-primary" disabled={busy} onClick={() => endEvent(row)}>End Event</button>
+                            <div>
+                              <dt>League</dt>
+                              <dd>{row.league?.toUpperCase() || "General"}</dd>
                             </div>
-                          )}
+                            <div>
+                              <dt>Location</dt>
+                              <dd>{row.location || "—"}</dd>
+                            </div>
+                            <div>
+                              <dt>Scheduled end</dt>
+                              <dd>{dateLabel(row.end_time)}</dd>
+                            </div>
+                          </dl>
+                          <div className="admin-actions">
+                            <button
+                              type="button"
+                              className="btn btn-ghost"
+                              disabled={busy}
+                              onClick={() => startEdit(row)}
+                            >
+                              Edit
+                            </button>
+                            {!row.ended_at && (
+                              <button
+                                type="button"
+                                className="btn btn-primary"
+                                disabled={busy}
+                                onClick={() => endEvent(row)}
+                              >
+                                End Event
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              className="btn btn-ghost"
+                              disabled={busy}
+                              onClick={() => deleteContent(row)}
+                            >
+                              Delete
+                            </button>
+                          </div>
                         </article>
                       ))}
                     </div>
@@ -1174,6 +1417,16 @@ export default function AdminClient() {
                           {"video_url" in row && row.video_url && <p><a href={row.video_url} target="_blank" rel="noopener noreferrer">{row.video_url}</a></p>}
                           {"season" in row && row.season && <p><strong>Season:</strong> {row.season}</p>}
                           <div className="admin-actions">
+                            {"slug" in row && (
+                              <a
+                                className="btn btn-ghost"
+                                href={`/news/${row.slug || row.id}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                View story
+                              </a>
+                            )}
                             <button type="button" className="btn btn-ghost" disabled={busy} onClick={() => startEdit(row)}>Edit</button>
                             <button type="button" className="btn btn-ghost" disabled={busy} onClick={() => deleteContent(row)}>Delete</button>
                           </div>
