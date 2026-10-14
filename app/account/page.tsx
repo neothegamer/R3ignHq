@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 import type { UserIdentity } from "@supabase/supabase-js";
 import ProfileClient from "./ProfileClient";
+import SignedOutNotice, {
+  signedInOnlyRobots,
+} from "@/components/auth/SignedOutNotice";
 import { getServerAuth } from "@/lib/supabase/auth";
 import type {
   AccountLoadErrors,
@@ -16,11 +18,22 @@ import type {
 export const metadata: Metadata = {
   title: "My Account · R3IGN HQ",
   description: "Manage your R3IGN HQ profile, teams, and account security.",
+  robots: signedInOnlyRobots,
 };
 
 export default async function AccountPage() {
   const { supabase, user } = await getServerAuth();
-  if (!user) redirect("/signin");
+  if (!user) {
+    return (
+      <SignedOutNotice
+        eyebrow="My Account"
+        title="Sign in to manage your account"
+        what="Your account page is where you edit your player profile, check your team memberships, link your game accounts and manage account security."
+        why="It shows your own private details, so it is only available once you are signed in."
+        redirectTo="/account"
+      />
+    );
+  }
 
   const [
     profileResult,

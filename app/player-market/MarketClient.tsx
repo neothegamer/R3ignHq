@@ -42,6 +42,10 @@ export default function MarketClient() {
   const [formError, setFormError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  // Visitors who are not signed in get a read-only preview: name, role, league
+  // and region. Free-text notes are hidden because players can type anything
+  // into them, including contact details.
+  const signedOut = !checkingAuth && !userId;
   const visibleListings = listings.filter((listing) =>
     `${listing.ign} ${listing.role} ${listing.notes ?? ""} ${listing.league ?? ""} ${listing.region ?? ""}`
       .toLowerCase()
@@ -59,7 +63,7 @@ export default function MarketClient() {
       .limit(24);
 
     if (error) {
-      setListError(error.message);
+      setListError("Player listings could not be loaded right now. Please try again shortly.");
       setListings([]);
     } else {
       setListings((data as Listing[]) || []);
@@ -233,9 +237,11 @@ export default function MarketClient() {
                       listing.profile.display_name !== listing.ign && (
                         <p className="market-player-ign">IGN · {listing.ign}</p>
                       )}
-                    <p>
-                      {listing.notes || "Available to join an organization."}
-                    </p>
+                    {signedOut ? null : (
+                      <p>
+                        {listing.notes || "Available to join an organization."}
+                      </p>
+                    )}
                     <div className="market-tags">
                       <span className="market-tag">
                         {(listing.league || "rcml").toUpperCase()}
@@ -288,10 +294,18 @@ export default function MarketClient() {
               <p className="lede">Checking authentication…</p>
             ) : !userId ? (
               <div className="auth-notice is-visible" id="mp-signin-notice">
+                The player market lists free agents who are looking for a
+                roster. Visitors can browse names, roles and regions. To list
+                yourself, read player notes or message a player, you need an
+                account so organizations can reach you through R3IGN HQ.{" "}
                 <Link href="/signin?redirect=/player-market" style={{ color: "var(--paper)" }}>
                   Sign in
                 </Link>{" "}
-                to list yourself on the player market.
+                or{" "}
+                <Link href="/signup" style={{ color: "var(--paper)" }}>
+                  create an account
+                </Link>
+                .
               </div>
             ) : success ? (
               <div className="form-success is-visible" id="mp-success" role="status">

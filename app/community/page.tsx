@@ -1,10 +1,22 @@
+import { getSocialLinks, type SocialLink } from "@/lib/site";
+
 export const metadata = {
   title: "Community",
   description:
-    "Join R3IGN HQ's Discord, Instagram, TikTok, and Facebook channels for match updates and league chat.",
+    "Join R3IGN HQ's community channels for match updates and league chat.",
+};
+
+const DESCRIPTIONS: Record<SocialLink["key"], string> = {
+  discord: "Match updates, league chat, and support",
+  instagram: "Highlights, graphics, and behind the scenes",
+  tiktok: "Short-form highlights and clips",
+  facebook: "League announcements and community updates",
 };
 
 export default function CommunityPage() {
+  // Links come from lib/site.ts; any link left empty there is not shown.
+  const links = getSocialLinks();
+
   return (
     <main id="main-content">
       <div className="page-header">
@@ -25,64 +37,30 @@ export default function CommunityPage() {
 
       <section className="section-tight">
         <div className="wrap">
-          <div className="social-grid">
-            <div className="social-card">
-              <div>
-                <h3>Discord</h3>
-                <p>Match updates, league chat, and support</p>
-              </div>
-              <a
-                href="https://discord.gg/85qGDxyCdp"
-                className="btn btn-ghost"
-                target="_blank"
-                rel="noopener"
-              >
-                Join
-              </a>
+          {links.length === 0 ? (
+            <p className="empty-state">
+              Our community channels are coming soon.
+            </p>
+          ) : (
+            <div className="social-grid">
+              {links.map((link) => (
+                <div className="social-card" key={link.key}>
+                  <div>
+                    <h3>{link.label}</h3>
+                    <p>{DESCRIPTIONS[link.key]}</p>
+                  </div>
+                  <a
+                    href={link.url}
+                    className="btn btn-ghost"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Join
+                  </a>
+                </div>
+              ))}
             </div>
-            <div className="social-card">
-              <div>
-                <h3>Instagram</h3>
-                <p>Highlights, graphics, and behind the scenes</p>
-              </div>
-              <a
-                href="https://www.instagram.com/r3ignhq"
-                className="btn btn-ghost"
-                target="_blank"
-                rel="noopener"
-              >
-                Join
-              </a>
-            </div>
-            <div className="social-card">
-              <div>
-                <h3>TikTok</h3>
-                <p>Short-form highlights and clips</p>
-              </div>
-              <a
-                href="https://www.tiktok.com/@r3ignhq"
-                className="btn btn-ghost"
-                target="_blank"
-                rel="noopener"
-              >
-                Join
-              </a>
-            </div>
-            <div className="social-card">
-              <div>
-                <h3>Facebook</h3>
-                <p>League announcements and community updates</p>
-              </div>
-              <a
-                href="https://www.facebook.com/share/18zfJRxAJK/"
-                className="btn btn-ghost"
-                target="_blank"
-                rel="noopener"
-              >
-                Join
-              </a>
-            </div>
-          </div>
+          )}
         </div>
       </section>
     </main>

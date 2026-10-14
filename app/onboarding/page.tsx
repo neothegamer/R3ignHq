@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getServerAuth } from "@/lib/supabase/auth";
+import SignedOutNotice, {
+  signedInOnlyRobots,
+} from "@/components/auth/SignedOutNotice";
 import OnboardingClient, {
   type OnboardingGameId,
   type OnboardingInitialData,
@@ -10,6 +13,7 @@ export const metadata: Metadata = {
   title: "Player Setup · R3IGN HQ",
   description:
     "Complete your R3IGN player profile — identity, games, connections, and community.",
+  robots: signedInOnlyRobots,
 };
 
 export default async function OnboardingPage({
@@ -18,7 +22,17 @@ export default async function OnboardingPage({
   searchParams: Promise<{ edit?: string }>;
 }) {
   const { supabase, user } = await getServerAuth();
-  if (!user) redirect("/signin?redirect=/onboarding");
+  if (!user) {
+    return (
+      <SignedOutNotice
+        eyebrow="Player Setup"
+        title="Sign in to set up your player profile"
+        what="Player setup is a short guided process where you choose your games, add your in-game details and connect your community accounts to build your R3IGN profile."
+        why="Your progress is saved to your account, so you need to be signed in to start."
+        redirectTo="/onboarding"
+      />
+    );
+  }
 
   const { edit } = await searchParams;
   const allowEdit = edit === "1";

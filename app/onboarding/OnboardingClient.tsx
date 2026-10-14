@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import AvatarUploader from "@/components/profile/AvatarUploader";
 import type { Database } from "@/lib/database.types";
 import { createClient } from "@/lib/supabase/client";
+import { getSocialLink } from "@/lib/site";
 
 type ProfileUpdate = Database["public"]["Tables"]["profiles"]["Update"];
 
@@ -60,7 +61,8 @@ const ONBOARDING_TO_ACCOUNT_GAME: Record<OnboardingGameId, "rcml" | "rfcl" | "rb
   freefire: "rfcl",
   bloodstrike: "rbsl",
 };
-const HQ_INVITE = "https://discord.gg/85qGDxyCdp";
+// The Discord invite lives in lib/site.ts; empty there hides the button.
+const HQ_INVITE = getSocialLink("discord")?.url ?? "";
 
 export type OnboardingInitialData = {
   userId: string;
@@ -824,14 +826,16 @@ export default function OnboardingClient({
               <p className="ob-hq-status">✓ R3IGN HQ CONNECTED</p>
             ) : (
               <>
-                <a
-                  className="btn btn-primary"
-                  href={HQ_INVITE}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Join R3IGN HQ
-                </a>
+                {HQ_INVITE ? (
+                  <a
+                    className="btn btn-primary"
+                    href={HQ_INVITE}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Join R3IGN HQ
+                  </a>
+                ) : null}
                 <button
                   type="button"
                   className="btn"

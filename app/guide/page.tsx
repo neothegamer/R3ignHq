@@ -33,8 +33,8 @@ export default function GuidePage() {
                 <div>
                   <h3>Pick a league</h3>
                   <p>
-                    RCML is active now; RFCL and RBSL are opening soon. Each runs
-                    its own seasons and standings.
+                    RCML, RFCL and RBSL each run their own seasons and
+                    standings. Check Leagues to see which are open.
                   </p>
                 </div>
               </div>
@@ -64,7 +64,11 @@ export default function GuidePage() {
                   <h3>Compete in matches</h3>
                   <p>
                     Each series brings scheduled matches with live kill tracking
-                    and standings updates.
+                    and standings updates. Every match is played under the{" "}
+                    <a href="/rules" style={{ color: "var(--amber)" }}>
+                      league rules
+                    </a>
+                    .
                   </p>
                 </div>
               </div>
@@ -82,6 +86,9 @@ export default function GuidePage() {
             <div className="center mt-lg">
               <a href="/register" className="btn btn-primary">
                 Register Your Organization
+              </a>{" "}
+              <a href="/rules" className="btn btn-ghost">
+                Read the League Rules
               </a>
             </div>
           </div>

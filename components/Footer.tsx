@@ -1,7 +1,11 @@
+import { Fragment } from "react";
 import Link from "next/link";
+import { FEATURES } from "@/lib/features";
+import { getSocialLinks } from "@/lib/site";
 
 export default function Footer() {
   const year = new Date().getFullYear();
+  const socials = getSocialLinks();
 
   return (
     <footer className="site-footer">
@@ -21,8 +25,12 @@ export default function Footer() {
               <li><Link href="/leagues">League Overview</Link></li>
               <li><Link href="/divisions">Divisions</Link></li>
               <li><Link href="/rankings">Rankings</Link></li>
-              <li><Link href="/events">Upcoming Events</Link></li>
-              <li><Link href="/brackets">Tournament Bracket</Link></li>
+              {FEATURES.events ? (
+                <li><Link href="/events">Upcoming Events</Link></li>
+              ) : null}
+              {FEATURES.brackets ? (
+                <li><Link href="/brackets">Tournament Bracket</Link></li>
+              ) : null}
               <li><Link href="/register">Register Organization</Link></li>
             </ul>
           </div>
@@ -42,7 +50,10 @@ export default function Footer() {
               <li><Link href="/awards">Awards & Hall of Champions</Link></li>
               <li><Link href="/news">News</Link></li>
               <li><Link href="/media">Media</Link></li>
-              <li><Link href="/match-highlights">Match Highlights</Link></li>
+              {FEATURES.highlights ? (
+                <li><Link href="/match-highlights">Match Highlights</Link></li>
+              ) : null}
+              {FEATURES.merch ? <li><Link href="/merch">Merch</Link></li> : null}
               <li><Link href="/partnerships">Partnerships</Link></li>
             </ul>
           </div>
@@ -69,20 +80,23 @@ export default function Footer() {
               <li><Link href="/copyright">Copyright Policy</Link></li>
             </ul>
           </div>
-          <div className="footer-col">
-            <h4>Community Channels</h4>
-            <ul>
-              <li>
-                <a href="https://discord.gg/85qGDxyCdp" target="_blank" rel="noopener">Discord</a>
-                {" · "}
-                <a href="https://www.instagram.com/r3ignhq" target="_blank" rel="noopener">Instagram</a>
-                {" · "}
-                <a href="https://www.tiktok.com/@r3ignhq" target="_blank" rel="noopener">TikTok</a>
-                {" · "}
-                <a href="https://www.facebook.com/share/18zfJRxAJK/" target="_blank" rel="noopener">Facebook</a>
-              </li>
-            </ul>
-          </div>
+          {socials.length > 0 ? (
+            <div className="footer-col">
+              <h4>Community Channels</h4>
+              <ul>
+                <li>
+                  {socials.map((link, i) => (
+                    <Fragment key={link.key}>
+                      {i > 0 ? " · " : null}
+                      <a href={link.url} target="_blank" rel="noopener noreferrer">
+                        {link.label}
+                      </a>
+                    </Fragment>
+                  ))}
+                </li>
+              </ul>
+            </div>
+          ) : null}
         </div>
 
         <div className="footer-bottom">
