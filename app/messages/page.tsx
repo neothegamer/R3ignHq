@@ -27,33 +27,32 @@ export default function MessagesPage() {
           <span className="breadcrumb">
             <Link href="/">Home</Link> / Messages
           </span>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: "1.5rem",
-              flexWrap: "wrap",
-            }}
+          <span
+            className="eyebrow"
+            style={{ marginTop: "1rem", display: "inline-flex" }}
           >
-            <div>
-              <span className="eyebrow" style={{ marginTop: "1rem", display: "inline-flex" }}>
-                Direct Messages
-              </span>
-              <h1>Messages</h1>
-              <p>
-                Chat directly with players and organizations you&apos;ve connected
-                with through the Player Market.
-              </p>
-            </div>
-            <Link className="btn btn-primary r3ign-new-message" href="/player-market">
-              New message
-            </Link>
-          </div>
+            Direct Messages
+          </span>
+          <h1>Messages</h1>
+          <p>
+            Chat directly with players and organizations you&apos;ve connected
+            with through the Player Market.
+          </p>
         </div>
       </div>
       <section className="section-tight r3ign-messages">
         <div className="wrap r3ign-messages-wrap">
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "flex-end",
+              marginBottom: "10px",
+            }}
+          >
+            <Link className="btn btn-primary r3ign-new-message" href="/player-market">
+              New message
+            </Link>
+          </div>
           <Suspense fallback={<div className="r3ign-messages-loading" role="status">Loading your inbox…</div>}>
             <MessagesClient />
           </Suspense>
