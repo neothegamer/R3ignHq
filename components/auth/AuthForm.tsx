@@ -9,13 +9,39 @@ type AuthFormProps = {
   mode: "signin" | "signup";
 };
 
-function passwordChecks(pw: string) {
+const MIN_PASSWORD_LENGTH = 8;
+
+/**
+ * One rule is required: at least 8 characters. Everything else only changes
+ * the strength hint, so people can choose a long passphrase if they prefer.
+ */
+function passwordStrength(pw: string) {
+  const kinds = [/[a-z]/, /[A-Z]/, /\d/, /[^A-Za-z0-9]/].filter((r) =>
+    r.test(pw)
+  ).length;
+  const meetsMinimum = pw.length >= MIN_PASSWORD_LENGTH;
+
+  if (!meetsMinimum) {
+    return {
+      meetsMinimum,
+      barClass: "is-weak",
+      hint: `Use at least ${MIN_PASSWORD_LENGTH} characters (${MIN_PASSWORD_LENGTH - pw.length} more).`,
+    };
+  }
+  if (pw.length >= 12 && kinds >= 3) {
+    return { meetsMinimum, barClass: "is-strong", hint: "Strong password." };
+  }
+  if (pw.length >= 12 || kinds >= 3) {
+    return {
+      meetsMinimum,
+      barClass: "is-good",
+      hint: "Good password. A little longer or more varied makes it stronger.",
+    };
+  }
   return {
-    length: pw.length >= 8,
-    number: /\d/.test(pw),
-    lower: /[a-z]/.test(pw),
-    upper: /[A-Z]/.test(pw),
-    special: /[^A-Za-z0-9]/.test(pw),
+    meetsMinimum,
+    barClass: "is-fair",
+    hint: "OK, but easy to guess. Make it longer, or mix letters, numbers and symbols.",
   };
 }
 
@@ -38,22 +64,10 @@ export default function AuthForm({ mode }: AuthFormProps) {
   const router = useRouter();
   const supabase = createClient();
 
-  const checks = useMemo(() => passwordChecks(password), [password]);
-  const strengthScore = Object.values(checks).filter(Boolean).length;
-  const passwordStrong = strengthScore === 5;
+  const strength = useMemo(() => passwordStrength(password), [password]);
+  const passwordOk = strength.meetsMinimum;
   const passwordsMatch =
     password === passwordConfirm && passwordConfirm.length > 0;
-
-  const strengthClass =
-    strengthScore <= 1
-      ? "is-weak"
-      : strengthScore === 2
-        ? "is-fair"
-        : strengthScore === 3 || strengthScore === 4
-          ? "is-good"
-          : strengthScore === 5
-            ? "is-strong"
-            : "";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,8 +87,8 @@ export default function AuthForm({ mode }: AuthFormProps) {
         setError("Enter a display name.");
         return;
       }
-      if (!passwordStrong) {
-        setError("Password does not meet the requirements.");
+      if (!passwordOk) {
+        setError(`Your password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
         return;
       }
       if (!passwordsMatch) {
@@ -454,49 +468,29 @@ export default function AuthForm({ mode }: AuthFormProps) {
               id="password-strength"
             >
               <div
-                className={`password-strength-bar ${strengthClass}`}
+                className={`password-strength-bar ${strength.barClass}`}
                 id="strength-bar"
-                data-score={strengthScore}
               >
                 <span />
               </div>
-              <ul className="password-reqs" id="password-reqs">
-                <li
-                  data-req="length"
-                  className={checks.length ? "is-met" : undefined}
-                >
-                  At least 8 characters
-                </li>
-                <li
-                  data-req="number"
-                  className={checks.number ? "is-met" : undefined}
-                >
-                  At least 1 number
-                </li>
-                <li
-                  data-req="lower"
-                  className={checks.lower ? "is-met" : undefined}
-                >
-                  At least 1 lowercase letter
-                </li>
-                <li
-                  data-req="upper"
-                  className={checks.upper ? "is-met" : undefined}
-                >
-                  At least 1 uppercase letter
-                </li>
-                <li
-                  data-req="special"
-                  className={checks.special ? "is-met" : undefined}
-                >
-                  At least 1 special character
-                </li>
-              </ul>
+              <p
+                className="field-hint"
+                id="password-hint"
+                style={{ margin: 0 }}
+                aria-live="polite"
+              >
+                {strength.hint}
+              </p>
             </div>
           )}
+          {mode === "signup" && password.length === 0 ? (
+            <p className="field-hint">
+              Use at least {MIN_PASSWORD_LENGTH} characters.
+            </p>
+          ) : null}
           <div className="field-error">
             {mode === "signup"
-              ? "Password does not meet the requirements."
+              ? `Use at least ${MIN_PASSWORD_LENGTH} characters.`
               : "Enter your password."}
           </div>
         </div>
