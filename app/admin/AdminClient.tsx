@@ -377,6 +377,7 @@ export default function AdminClient() {
     ]);
 
     setRegistrations((registrationResult.data as Registration[] | null) ?? []);
+    setOrganizations((orgResult.data as OrgItem[] | null) ?? []);
     setGameAccounts((gameAccountResult.data as GameAccount[] | null) ?? []);
     setEvents((eventResult.data as EventRow[] | null) ?? []);
     setNews((newsResult.data as NewsPost[] | null) ?? []);
@@ -388,6 +389,7 @@ export default function AdminClient() {
 
     const errors: Partial<Record<Tab, string>> = {};
     if (registrationResult.error) errors.registrations = registrationResult.error.message;
+    if (orgResult.error) errors.organizations = orgResult.error.message;
     if (gameAccountResult.error) errors.verifications = gameAccountResult.error.message;
     if (eventResult.error) errors.events = eventResult.error.message;
     if (newsResult.error) errors.news = newsResult.error.message;
@@ -675,7 +677,7 @@ export default function AdminClient() {
     const targetRegs = registrations.filter((r) => ids.includes(r.id) && r.status === "approved");
     if (targetRegs.length === 0) return;
     void runConfirmed(
-      ,
+      `Revoke approval for ${targetRegs.length} organization(s) and remove from the Organizations page?`,
       async () => {
         const targetIds = targetRegs.map((r) => r.id);
         const previous = registrations;
@@ -720,7 +722,7 @@ export default function AdminClient() {
         setSelectedIds(new Set());
         setNotice({
           kind: "success",
-          text: ,
+          text: `Approval revoked for ${targetIds.length} registration(s) and removed from Organizations.`,
         });
       }
     );
