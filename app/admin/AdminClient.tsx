@@ -1411,12 +1411,14 @@ export default function AdminClient() {
   return (
     <main id="main-content" className="admin-page">
       <div className="page-header" style={{ paddingBlock: "1.25rem 1rem" }}>
-        <div className="wrap" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "0.75rem" }}>
-          <div>
-            <span className="eyebrow" style={{ fontSize: "0.68rem" }}>R3IGN HQ Operations</span>
-            <h1 style={{ fontSize: "clamp(1.75rem, 3.5vw, 2.4rem)", marginTop: "0.25rem", marginBottom: 0 }}>Admin Panel</h1>
-          </div>
-          <p style={{ marginTop: 0, marginBottom: 0, fontSize: "0.85rem", color: "var(--paper-dim)" }}>Review submissions and manage league content.</p>
+        <div className="wrap">
+          <span className="eyebrow" style={{ fontSize: "0.68rem" }}>R3IGN HQ Operations</span>
+          <h1 style={{ fontSize: "clamp(1.75rem, 3.5vw, 2.4rem)", marginTop: "0.25rem", marginBottom: "0.35rem", whiteSpace: "nowrap" }}>
+            Admin Panel
+          </h1>
+          <p style={{ marginTop: 0, marginBottom: 0, fontSize: "0.85rem", color: "var(--paper-dim)" }}>
+            Review submissions and manage league content.
+          </p>
         </div>
       </div>
 
@@ -1457,7 +1459,7 @@ export default function AdminClient() {
                   setEditing(false);
                   setPage(1);
                   setSearchQuery("");
-                  setStatusFilter(tab.id === "registrations" ? "pending" : "all");
+                  setStatusFilter("all");
                   setSelectedIds(new Set());
                 }}
               >
@@ -1633,7 +1635,7 @@ export default function AdminClient() {
 
               {activeTab === "organizations" && (
                 <section aria-labelledby="admin-section-heading">
-                  <div className="admin-section-header">
+                  <div className="admin-section-heading" style={{ alignItems: "flex-start", marginBottom: "1rem" }}>
                     <div>
                       <h2 id="admin-section-heading">Active Organizations</h2>
                       <p className="admin-muted" style={{ marginTop: "0.25rem" }}>
