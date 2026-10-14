@@ -653,7 +653,14 @@ export default function AdminClient() {
         season: row.season ?? "",
       });
     } else if ("start_time" in row) {
-      // EventRow
+      // EventRow — do not allow editing ended events
+      if (row.ended_at) {
+        setNotice({
+          kind: "error",
+          text: "Ended events cannot be edited.",
+        });
+        return;
+      }
       setDraft({
         ...EMPTY_DRAFT,
         id: row.id,
@@ -1307,14 +1314,16 @@ export default function AdminClient() {
                             </div>
                           </dl>
                           <div className="admin-actions">
-                            <button
-                              type="button"
-                              className="btn btn-ghost"
-                              disabled={busy}
-                              onClick={() => startEdit(row)}
-                            >
-                              Edit
-                            </button>
+                            {!row.ended_at && (
+                              <button
+                                type="button"
+                                className="btn btn-ghost"
+                                disabled={busy}
+                                onClick={() => startEdit(row)}
+                              >
+                                Edit
+                              </button>
+                            )}
                             {!row.ended_at && (
                               <button
                                 type="button"
