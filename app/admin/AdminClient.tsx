@@ -65,6 +65,7 @@ type EventRow = {
 
 type NewsPost = {
   id: string;
+  slug: string | null;
   title: string;
   body: string;
   category: string;
@@ -161,6 +162,30 @@ function dateLabel(value: string | null) {
 
 function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : "The request could not be completed.";
+}
+
+function slugify(title: string) {
+  const base = title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+  return base || "story";
+}
+
+function uniqueSlug(title: string, existing: NewsPost[], currentId?: string) {
+  const taken = new Set(
+    existing
+      .filter((item) => item.id !== currentId)
+      .map((item) => item.slug)
+      .filter((slug): slug is string => Boolean(slug))
+  );
+  const base = slugify(title);
+  if (!taken.has(base)) return base;
+  for (let i = 2; ; i += 1) {
+    const candidate = `${base}-${i}`;
+    if (!taken.has(candidate)) return candidate;
+  }
 }
 
 function profileInfo(profile: ProfileInfo | ProfileInfo[] | null) {
@@ -570,12 +595,16 @@ export default function AdminClient() {
     await runConfirmed(`${action} this ${label}?`, async () => {
       const createdAt = new Date().toISOString();
       if (tab === "news") {
+        const existingPost = isEdit ? news.find((item) => item.id === id) : undefined;
         const payload = {
           title: draft.title.trim(),
           body: draft.body.trim(),
           category: draft.category,
           author_name: draft.author_name.trim() || null,
           published: draft.published,
+          // Keep an existing slug stable on edit; only mint one when missing.
+          slug:
+            existingPost?.slug ?? uniqueSlug(draft.title, news, isEdit ? id : undefined),
           ...(isEdit ? {} : { created_by: userId }),
         };
         if (isEdit && id) {
