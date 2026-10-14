@@ -27,17 +27,29 @@ export default function MessagesPage() {
           <span className="breadcrumb">
             <Link href="/">Home</Link> / Messages
           </span>
-          <span className="eyebrow" style={{ marginTop: "1rem", display: "inline-flex" }}>
-            Direct Messages
-          </span>
-          <h1>Messages</h1>
-          <p>
-            Chat directly with players and organizations you&apos;ve connected
-            with through the Player Market.
-          </p>
-          <Link className="btn btn-primary r3ign-new-message" href="/player-market" style={{ marginTop: "1.25rem", display: "inline-flex" }}>
-            New message
-          </Link>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: "1.5rem",
+              flexWrap: "wrap",
+            }}
+          >
+            <div>
+              <span className="eyebrow" style={{ marginTop: "1rem", display: "inline-flex" }}>
+                Direct Messages
+              </span>
+              <h1>Messages</h1>
+              <p>
+                Chat directly with players and organizations you&apos;ve connected
+                with through the Player Market.
+              </p>
+            </div>
+            <Link className="btn btn-primary r3ign-new-message" href="/player-market">
+              New message
+            </Link>
+          </div>
         </div>
       </div>
       <section className="section-tight r3ign-messages">
