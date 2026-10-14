@@ -12,6 +12,7 @@ import { useR3ignDialog } from "@/components/R3ignDialog";
 
 type Tab =
   | "registrations"
+  | "organizations"
   | "verifications"
   | "events"
   | "news"
@@ -28,6 +29,17 @@ type PlayerReport = {
   created_at: string | null;
   reporter: ProfileInfo | ProfileInfo[] | null;
   reported: ProfileInfo | ProfileInfo[] | null;
+};
+
+type OrgItem = {
+  id: string;
+  name: string;
+  tag: string;
+  league: string;
+  division: number | null;
+  region: string | null;
+  logo_url: string | null;
+  created_at?: string | null;
 };
 
 type Registration = {
@@ -143,6 +155,7 @@ type Draft = {
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "registrations", label: "Registrations" },
+  { id: "organizations", label: "Organizations" },
   { id: "verifications", label: "Game Verifications" },
   { id: "events", label: "Events" },
   { id: "news", label: "News" },
@@ -278,6 +291,7 @@ export default function AdminClient() {
   const [userId, setUserId] = useState<string | null>(null);
 
   const [registrations, setRegistrations] = useState<Registration[]>([]);
+  const [organizations, setOrganizations] = useState<OrgItem[]>([]);
   const [gameAccounts, setGameAccounts] = useState<GameAccount[]>([]);
   const [events, setEvents] = useState<EventRow[]>([]);
   const [news, setNews] = useState<NewsPost[]>([]);
@@ -301,6 +315,7 @@ export default function AdminClient() {
     setLoading(true);
     const [
       registrationResult,
+      orgResult,
       gameAccountResult,
       eventResult,
       newsResult,
@@ -316,6 +331,10 @@ export default function AdminClient() {
           "id,team_name,team_tag,league,captain_name,captain_email,discord,region,roster,notes,logo_url,submitted_by,status,created_at"
         )
         .order("created_at", { ascending: false }),
+      supabase
+        .from("organizations")
+        .select("id,name,tag,league,division,region,logo_url,created_at")
+        .order("name", { ascending: true }),
       supabase
         .from("game_accounts")
         .select(
@@ -406,6 +425,18 @@ export default function AdminClient() {
     };
   }, [registrations, gameAccounts, events, news, reports]);
 
+  const filteredOrganizations = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return organizations;
+    return organizations.filter(
+      (o) =>
+        o.name.toLowerCase().includes(q) ||
+        o.tag.toLowerCase().includes(q) ||
+        o.league.toLowerCase().includes(q) ||
+        (o.region ?? "").toLowerCase().includes(q)
+    );
+  }, [organizations, searchQuery]);
+
   const filteredRegistrations = useMemo(() => {
     return registrations.filter((row) => {
       if (statusFilter !== "all" && row.status !== statusFilter) return false;
@@ -493,29 +524,145 @@ export default function AdminClient() {
 
     if (checkErr) throw checkErr;
     if (existing) {
-      return { created: false, message: `${row.team_name} is already on the Organizations page.` };
+      return { created: false, message: `"${row.team_name}" is already on the Organizations page.` };
     }
 
-    const { error: insertErr } = await supabase.from("organizations").insert({
-      name: row.team_name.trim(),
-      tag: row.team_tag.trim(),
-      league: row.league.trim(),
-      region: row.region?.trim() || null,
-      logo_url: row.logo_url || null,
-      owner_id: row.submitted_by || null,
-      division: 6,
-    });
+    const { data: inserted, error: insertErr } = await supabase
+      .from("organizations")
+      .insert({
+        name: row.team_name.trim(),
+        tag: row.team_tag.trim(),
+        league: row.league.trim(),
+        region: row.region?.trim() || null,
+        logo_url: row.logo_url || null,
+        owner_id: row.submitted_by || null,
+        division: 6,
+      })
+      .select("id,name,tag,league,division,region,logo_url,created_at")
+      .single();
 
     if (insertErr) throw insertErr;
-    return { created: true, message: `${row.team_name} successfully added to Organizations.` };
+    if (inserted) {
+      setOrganizations((prev) => [...prev, inserted as OrgItem]);
+    }
+    return { created: true, message: `"${row.team_name}" added to Organizations page.` };
   }
 
   function syncSingleOrg(row: Registration) {
     void runConfirmed(
-      `Sync ${row.team_name} to the Organizations page?`,
+      `Add "${row.team_name}" to the Organizations page?`,
       async () => {
         const result = await syncRegistrationToOrg(row);
         setNotice({ kind: "success", text: result.message });
+      }
+    );
+  }
+
+  async function removeRegistrationFromOrg(row: Registration) {
+    void runConfirmed(
+      `Remove "${row.team_name}" from the Organizations page?`,
+      async () => {
+        const { data: org } = await supabase
+          .from("organizations")
+          .select("id")
+          .ilike("name", row.team_name.trim())
+          .maybeSingle();
+
+        if (!org) {
+          setNotice({
+            kind: "info",
+            text: `"${row.team_name}" is not currently in the Organizations list.`,
+          });
+          return;
+        }
+
+        try {
+          await supabase.from("organization_members").delete().eq("organization_id", org.id);
+        } catch {}
+        try {
+          await supabase.from("rankings").update({ organization_id: null }).eq("organization_id", org.id);
+        } catch {}
+
+        const { error } = await supabase.from("organizations").delete().eq("id", org.id);
+        if (error) throw error;
+
+        setOrganizations((prev) => prev.filter((o) => o.id !== org.id));
+        setNotice({
+          kind: "success",
+          text: `"${row.team_name}" removed from Organizations page.`,
+        });
+      }
+    );
+  }
+
+  function revokeApproval(row: Registration) {
+    void runConfirmed(
+      `Revoke approval for "${row.team_name}" and remove them from the Organizations page?`,
+      async () => {
+        const previous = registrations;
+        setRegistrations((items) =>
+          items.map((item) => (item.id === row.id ? { ...item, status: "pending" } : item))
+        );
+
+        const { error } = await supabase
+          .from("registrations")
+          .update({ status: "pending" })
+          .eq("id", row.id);
+
+        if (error) {
+          setRegistrations(previous);
+          throw error;
+        }
+
+        const { data: org } = await supabase
+          .from("organizations")
+          .select("id")
+          .ilike("name", row.team_name.trim())
+          .maybeSingle();
+
+        if (org) {
+          try {
+            await supabase.from("organization_members").delete().eq("organization_id", org.id);
+          } catch {}
+          try {
+            await supabase.from("rankings").update({ organization_id: null }).eq("organization_id", org.id);
+          } catch {}
+          await supabase.from("organizations").delete().eq("id", org.id);
+          setOrganizations((prev) => prev.filter((o) => o.id !== org.id));
+        }
+
+        setNotice({
+          kind: "success",
+          text: `Approval revoked for "${row.team_name}" and removed from Organizations.`,
+        });
+      }
+    );
+  }
+
+  async function deleteOrganization(org: OrgItem) {
+    void runConfirmed(
+      `Remove "${org.name}" from the Organizations page permanently?`,
+      async () => {
+        const previous = organizations;
+        setOrganizations((items) => items.filter((o) => o.id !== org.id));
+
+        try {
+          await supabase.from("organization_members").delete().eq("organization_id", org.id);
+        } catch {}
+        try {
+          await supabase.from("rankings").update({ organization_id: null }).eq("organization_id", org.id);
+        } catch {}
+
+        const { error } = await supabase.from("organizations").delete().eq("id", org.id);
+        if (error) {
+          setOrganizations(previous);
+          throw error;
+        }
+
+        setNotice({
+          kind: "success",
+          text: `"${org.name}" removed from Organizations.`,
+        });
       }
     );
   }
@@ -651,6 +798,19 @@ export default function AdminClient() {
           } catch (err) {
             console.error("Failed to sync org to table:", err);
           }
+        } else if (status === "rejected") {
+          // If rejected, also remove from organizations if it was there
+          try {
+            const { data: org } = await supabase
+              .from("organizations")
+              .select("id")
+              .ilike("name", row.team_name.trim())
+              .maybeSingle();
+            if (org) {
+              await supabase.from("organizations").delete().eq("id", org.id);
+              setOrganizations((prev) => prev.filter((o) => o.id !== org.id));
+            }
+          } catch {}
         }
       }
     );
@@ -1404,6 +1564,22 @@ export default function AdminClient() {
                               <button type="button" className="btn btn-ghost" disabled={busy} onClick={() => syncSingleOrg(row)}>
                                 Sync to Organizations
                               </button>
+                              <button type="button" className="btn btn-ghost" disabled={busy} onClick={() => removeRegistrationFromOrg(row)}>
+                                Remove from Org Page
+                              </button>
+                              <button type="button" className="btn btn-ghost" disabled={busy} onClick={() => revokeApproval(row)}>
+                                Revoke Approval
+                              </button>
+                            </div>
+                          )}
+                          {row.status === "rejected" && (
+                            <div className="admin-actions">
+                              <button type="button" className="btn btn-ghost" disabled={busy} onClick={() => changeRegistrationStatus(row, "pending")}>
+                                Re-open (Pending)
+                              </button>
+                              <button type="button" className="btn btn-primary" disabled={busy} onClick={() => changeRegistrationStatus(row, "approved")}>
+                                Approve
+                              </button>
                             </div>
                           )}
                         </article>
@@ -1413,6 +1589,104 @@ export default function AdminClient() {
                   <Pager
                     page={page}
                     pageCount={tabPageCount}
+                    onPage={setPage}
+                  />
+                </section>
+              )}
+
+              {activeTab === "organizations" && (
+                <section aria-labelledby="admin-section-heading">
+                  <div className="admin-section-header">
+                    <div>
+                      <h2 id="admin-section-heading">Active Organizations</h2>
+                      <p className="admin-muted" style={{ marginTop: "0.25rem" }}>
+                        These organizations are currently live on the public /organizations page.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="admin-toolbar">
+                    <input
+                      type="search"
+                      className="admin-search"
+                      placeholder="Search organizations by name, tag, league..."
+                      value={searchQuery}
+                      onChange={(e) => {
+                        setSearchQuery(e.target.value);
+                        setPage(1);
+                      }}
+                    />
+                  </div>
+
+                  {filteredOrganizations.length === 0 ? (
+                    <p className="admin-empty">No organizations found.</p>
+                  ) : (
+                    <div className="admin-card-list">
+                      {pageSlice(filteredOrganizations, page).map((org) => (
+                        <article key={org.id} className="admin-card">
+                          <div className="admin-card-head">
+                            <div className="admin-card-title-group">
+                              {org.logo_url && (
+                                <img
+                                  src={org.logo_url}
+                                  alt=""
+                                  style={{
+                                    width: "36px",
+                                    height: "36px",
+                                    borderRadius: "4px",
+                                    objectFit: "cover",
+                                  }}
+                                />
+                              )}
+                              <div>
+                                <h3 className="admin-card-title">
+                                  {org.name}{" "}
+                                  <span className="admin-muted">[{org.tag}]</span>
+                                </h3>
+                              </div>
+                            </div>
+                            <span className="admin-status is-approved">
+                              {org.league.toUpperCase()}
+                            </span>
+                          </div>
+
+                          <dl className="admin-detail-grid">
+                            <div>
+                              <dt>League</dt>
+                              <dd>{org.league.toUpperCase()}</dd>
+                            </div>
+                            <div>
+                              <dt>Division</dt>
+                              <dd>Div {org.division ?? 6}</dd>
+                            </div>
+                            <div>
+                              <dt>Region</dt>
+                              <dd>{org.region || "—"}</dd>
+                            </div>
+                          </dl>
+
+                          <div className="admin-actions">
+                            <button
+                              type="button"
+                              className="btn btn-ghost"
+                              disabled={busy}
+                              onClick={() => deleteOrganization(org)}
+                              style={{ color: "#ef4444" }}
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  )}
+
+                  <Pager
+                    page={page}
+                    pageCount={Math.max(
+                      1,
+                      Math.ceil(filteredOrganizations.length / PAGE_SIZE)
+                    )}
                     onPage={setPage}
                   />
                 </section>
