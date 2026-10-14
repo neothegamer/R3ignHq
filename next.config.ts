@@ -2,6 +2,11 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // The Media page lists the files in public/brand at request time. Make sure
+  // they are bundled with that page when it is deployed.
+  outputFileTracingIncludes: {
+    "/media": ["./public/brand/**/*"],
+  },
   async headers() {
     return [
       {

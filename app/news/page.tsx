@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import NewsGrid, { type NewsPost } from "./NewsGrid";
 
@@ -23,11 +24,13 @@ export const metadata = {
 };
 
 export default async function NewsPage() {
-  const supabase = await createClient();
+  // `slug` is not in the generated database types yet, so the client is
+  // widened for this query.
+  const supabase = (await createClient()) as unknown as SupabaseClient;
 
   const { data, error } = await supabase
     .from("news_posts")
-    .select("id, title, category, body, created_at")
+    .select("id, slug, title, category, body, created_at")
     .eq("published", true)
     .order("created_at", { ascending: false });
 

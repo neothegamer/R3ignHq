@@ -29,6 +29,18 @@ type Winner = {
   season: string | null;
 };
 
+const AWARDS = [
+  { medal: "PO", label: "Player of the Year" },
+  { medal: "OO", label: "Organization of the Year" },
+  { medal: "RO", label: "Rookie of the Year" },
+  { medal: "MO", label: "MVP of the Year" },
+  { medal: "CL", label: "Community Leader" },
+  { medal: "CC", label: "Content Creator of the Year" },
+] as const;
+
+const same = (a: string, b: string) =>
+  a.trim().toLowerCase() === b.trim().toLowerCase();
+
 async function loadWinners(): Promise<Winner[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -67,36 +79,23 @@ export default async function AwardsPage() {
       <section className="section-tight">
         <div className="wrap">
           <div className="award-grid">
-            <div className="award-card">
-              <div className="medal">PO</div>
-              <h3>Player of the Year</h3>
-              <p>Winner to be announced</p>
-            </div>
-            <div className="award-card">
-              <div className="medal">OO</div>
-              <h3>Organization of the Year</h3>
-              <p>Winner to be announced</p>
-            </div>
-            <div className="award-card">
-              <div className="medal">RO</div>
-              <h3>Rookie of the Year</h3>
-              <p>Winner to be announced</p>
-            </div>
-            <div className="award-card">
-              <div className="medal">MO</div>
-              <h3>MVP of the Year</h3>
-              <p>Winner to be announced</p>
-            </div>
-            <div className="award-card">
-              <div className="medal">CL</div>
-              <h3>Community Leader</h3>
-              <p>Winner to be announced</p>
-            </div>
-            <div className="award-card">
-              <div className="medal">CC</div>
-              <h3>Content Creator of the Year</h3>
-              <p>Winner to be announced</p>
-            </div>
+            {AWARDS.map((award) => {
+              // Winners are newest first, so the first match is the latest.
+              const winner = winners.find((w) =>
+                same(w.award_label, award.label)
+              );
+              return (
+                <div className="award-card" key={award.label}>
+                  <div className="medal">{award.medal}</div>
+                  <h3>{award.label}</h3>
+                  <p>
+                    {winner
+                      ? `${winner.player_name}${winner.season ? ` · ${winner.season}` : ""}`
+                      : "Winner to be announced"}
+                  </p>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>

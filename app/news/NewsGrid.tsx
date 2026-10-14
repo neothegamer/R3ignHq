@@ -6,6 +6,7 @@ import SiteSearch from "@/components/SiteSearch";
 
 export type NewsPost = {
   id: string;
+  slug: string;
   title: string;
   category: string;
   body: string;
@@ -113,7 +114,7 @@ export default function NewsGrid({ posts = [] }: Props) {
         {visible.map((post) => (
           <Link
             key={post.id}
-            href={`/news/${post.id}`}
+            href={`/news/${post.slug || post.id}`}
             className="news-card news-item"
           >
             <div className="news-thumb">

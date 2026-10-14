@@ -1,5 +1,8 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { FEATURES } from "@/lib/features";
+import { getLeagueSeasons } from "@/lib/season";
 import HighlightsGrid, { type Highlight } from "./HighlightsGrid";
 
 export const metadata = {
@@ -23,6 +26,8 @@ export const metadata = {
 };
 
 export default async function MatchHighlightsPage() {
+  if (!FEATURES.highlights) notFound();
+
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -32,8 +37,21 @@ export default async function MatchHighlightsPage() {
     .neq("video_url", "")
     .order("created_at", { ascending: false });
 
-  const items: Highlight[] =
+  const allClips: Highlight[] =
     !error && data && data.length > 0 ? (data as Highlight[]) : [];
+
+  // Leagues that have started (a season is running or finished, or standings
+  // exist). Clips from a league that has not started are never listed.
+  const seasons = await getLeagueSeasons();
+  const started = new Set(
+    seasons
+      .filter((s) => s.status !== "none" && s.status !== "upcoming")
+      .map((s) => s.league.toLowerCase())
+  );
+  const items = allClips.filter((clip) => {
+    const league = (clip.league ?? "").trim().toLowerCase();
+    return league === "" || started.has(league);
+  });
 
   return (
     <main id="main-content">

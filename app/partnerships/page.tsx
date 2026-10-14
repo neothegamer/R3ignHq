@@ -1,9 +1,15 @@
+import { getAudienceStats } from "@/lib/audience";
+import PartnershipForm from "./PartnershipForm";
+
 export const metadata = {
   title: "Partnerships",
   description: "Sponsorship and partnership opportunities with R3IGN HQ.",
 };
 
 export default function PartnershipsPage() {
+  // Only numbers filled in lib/audience.ts are shown.
+  const audience = getAudienceStats();
+
   return (
     <main id="main-content">
       <div className="page-header">
@@ -24,6 +30,28 @@ export default function PartnershipsPage() {
           </p>
         </div>
       </div>
+
+      {audience.length > 0 ? (
+        <section className="section-tight">
+          <div className="wrap">
+            <div
+              className="stat-strip"
+              style={{ display: "flex", flexWrap: "wrap" }}
+            >
+              {audience.map((stat) => (
+                <div
+                  className="stat"
+                  key={stat.key}
+                  style={{ flex: "1 1 12rem" }}
+                >
+                  <div className="num">{stat.value.toLocaleString("en-US")}</div>
+                  <div className="lbl">{stat.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       <section>
         <div className="wrap">
@@ -65,10 +93,19 @@ export default function PartnershipsPage() {
               </div>
             </div>
           </div>
-          <div className="center mt-lg">
-            <a href="/support" className="btn btn-primary">
-              Discuss a Partnership
-            </a>
+        </div>
+      </section>
+
+      <section id="contact">
+        <div className="wrap" style={{ maxWidth: "44rem" }}>
+          <div className="section-head">
+            <div>
+              <span className="eyebrow">Get In Touch</span>
+              <h2>Discuss a partnership</h2>
+            </div>
+          </div>
+          <div className="form-panel">
+            <PartnershipForm />
           </div>
         </div>
       </section>

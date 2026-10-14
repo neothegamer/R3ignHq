@@ -1,8 +1,13 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+import { FEATURES } from "@/lib/features";
+import MerchSignup from "./MerchSignup";
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "Merch",
   description: "Official R3IGN merchandise — coming soon.",
+  // While merch is switched off in lib/features.ts, keep the page out of search.
+  robots: FEATURES.merch ? undefined : { index: false, follow: false },
   openGraph: {
     title: "Merch · R3IGN HQ",
     description: "Official R3IGN merchandise — coming soon.",
@@ -33,7 +38,7 @@ export default function MerchPage() {
           </span>
           <h1>Merch</h1>
           <p>
-            Official R3IGN gear is on the way. Join the newsletter and
+            Official R3IGN gear is on the way. Leave your email and
             we&rsquo;ll let you know the moment the first drop is live.
           </p>
         </div>
@@ -41,9 +46,7 @@ export default function MerchPage() {
 
       <section>
         <div className="wrap center">
-          <Link href="/#newsletter-form" className="btn btn-primary">
-            Get Notified
-          </Link>
+          <MerchSignup />
         </div>
       </section>
     </main>

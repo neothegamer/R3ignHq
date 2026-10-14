@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { FEATURES } from "@/lib/features";
 
 export const metadata = {
   title: "Tournament Bracket",
@@ -168,6 +170,8 @@ async function loadActiveTournament(): Promise<TournamentView | null> {
 }
 
 export default async function BracketsPage() {
+  if (!FEATURES.brackets) notFound();
+
   const tournament = await loadActiveTournament();
 
   return (
@@ -176,7 +180,7 @@ export default async function BracketsPage() {
         <div className="wrap">
           <span className="breadcrumb">
             <Link href="/">Home</Link> /{" "}
-            <Link href="/events">Events</Link> / Bracket
+            <Link href="/leagues">Leagues</Link> / Bracket
           </span>
           <span
             className="eyebrow"

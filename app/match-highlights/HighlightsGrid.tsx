@@ -73,24 +73,32 @@ export default function HighlightsGrid({ items = [] }: Props) {
   const [filter, setFilter] = useState("all");
 
   // Only clips that actually have a video are shown.
-  const source = items.filter((h) => Boolean(h.video_url));
+  const source = items.filter((h) => Boolean(h.video_url?.trim()));
+  const leagueOf = (h: Highlight) => (h.league ?? "").trim().toLowerCase();
   const visible =
-    filter === "all" ? source : source.filter((h) => h.league === filter);
+    filter === "all" ? source : source.filter((h) => leagueOf(h) === filter);
+
+  // Filter chips only for leagues that actually have a clip.
+  const leagues = (["rcml", "rfcl", "rbsl"] as const).filter((v) =>
+    source.some((h) => leagueOf(h) === v)
+  );
 
   return (
     <>
-      <div className="filter-bar">
-        {(["all", "rcml", "rfcl", "rbsl"] as const).map((v) => (
-          <button
-            key={v}
-            className="filter-chip"
-            aria-pressed={filter === v}
-            onClick={() => setFilter(v)}
-          >
-            {v === "all" ? "All" : v.toUpperCase()}
-          </button>
-        ))}
-      </div>
+      {leagues.length > 0 ? (
+        <div className="filter-bar">
+          {(["all", ...leagues] as string[]).map((v) => (
+            <button
+              key={v}
+              className="filter-chip"
+              aria-pressed={filter === v}
+              onClick={() => setFilter(v)}
+            >
+              {v === "all" ? "All" : v.toUpperCase()}
+            </button>
+          ))}
+        </div>
+      ) : null}
 
       <div className="news-grid" id="highlights-grid">
         {visible.length === 0 ? (
@@ -98,7 +106,7 @@ export default function HighlightsGrid({ items = [] }: Props) {
             className="field-hint center empty-state"
             style={{ marginTop: "1.5rem" }}
           >
-            No highlights posted yet — check back after the next match.
+            No highlights yet. Clips will appear here after the next match.
           </p>
         ) : (
           <>
@@ -118,11 +126,13 @@ export default function HighlightsGrid({ items = [] }: Props) {
                   />
                 </div>
                 <div className="news-body">
-                  <span className="eyebrow">{h.match_label}</span>
+                  {h.match_label ? (
+                    <span className="eyebrow">{h.match_label}</span>
+                  ) : null}
                   <h3>{h.title}</h3>
-                  <p>{h.description}</p>
+                  {h.description ? <p>{h.description}</p> : null}
                   <div className="news-foot">
-                    <span>{formatDate(h.created_at)}</span>
+                    <span>{h.created_at ? formatDate(h.created_at) : ""}</span>
                     <ShareButton h={h} />
                   </div>
                 </div>

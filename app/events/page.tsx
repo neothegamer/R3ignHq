@@ -1,5 +1,8 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { FEATURES } from "@/lib/features";
+import { getSocialLink } from "@/lib/site";
 import EventsClient, { type EventItem } from "./EventsClient";
 
 export const metadata = {
@@ -23,6 +26,8 @@ export const metadata = {
 };
 
 export default async function EventsPage() {
+  if (!FEATURES.events) notFound();
+
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("events")
@@ -32,6 +37,7 @@ export default async function EventsPage() {
     .order("start_time", { ascending: true });
 
   const events: EventItem[] = !error && data ? (data as EventItem[]) : [];
+  const discord = getSocialLink("discord");
 
   return (
     <main id="main-content">
@@ -51,17 +57,44 @@ export default async function EventsPage() {
             League matches and community events. Tap Add to Calendar to save any
             date straight to your phone or computer.
           </p>
-          <div className="cta-actions" style={{ marginTop: "1.25rem" }}>
-            <Link href="/brackets" className="btn btn-primary">
-              View Tournament Bracket →
-            </Link>
-          </div>
+          {FEATURES.brackets ? (
+            <div className="cta-actions" style={{ marginTop: "1.25rem" }}>
+              <Link href="/brackets" className="btn btn-primary">
+                View Tournament Bracket →
+              </Link>
+            </div>
+          ) : null}
         </div>
       </div>
 
       <section className="section-tight">
         <div className="wrap">
-          <EventsClient events={events} live={events.length > 0} />
+          {events.length === 0 ? (
+            <div className="empty-state">
+              <h2 style={{ marginBottom: "0.5rem" }}>No upcoming events</h2>
+              <p>
+                Nothing is scheduled right now. New league matches and
+                community events will appear here as soon as they are announced.
+              </p>
+              <div className="cta-actions" style={{ marginTop: "1.25rem" }}>
+                <Link href="/leagues" className="btn btn-ghost">
+                  View Leagues
+                </Link>
+                {discord ? (
+                  <a
+                    href={discord.url}
+                    className="btn btn-ghost"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Follow on Discord
+                  </a>
+                ) : null}
+              </div>
+            </div>
+          ) : (
+            <EventsClient events={events} />
+          )}
         </div>
       </section>
     </main>

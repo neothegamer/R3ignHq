@@ -98,60 +98,6 @@ function googleCalendarUrl(ev: EventItem) {
   return "https://calendar.google.com/calendar/render?" + params.toString();
 }
 
-function sampleUpcoming(): EventItem[] {
-  const now = Date.now();
-  const day = 24 * 60 * 60 * 1000;
-  return [
-    {
-      id: "sample-1",
-      title: "RCML Season 4 — Division 1 Match Night",
-      description:
-        "Live Division 1 matches with kill tracking and standings updates.",
-      league: "rcml",
-      location: "Online",
-      start_time: new Date(now + 3 * day).toISOString(),
-      end_time: new Date(now + 3 * day + TWO_HOURS).toISOString(),
-    },
-    {
-      id: "sample-2",
-      title: "RFCL — Open Registration",
-      description:
-        "Registration window is open for the inaugural Free Fire Clash Squad season.",
-      league: "rfcl",
-      location: "Online",
-      start_time: new Date(now + 1 * day).toISOString(),
-      end_time: new Date(now + 1 * day + TWO_HOURS).toISOString(),
-    },
-    {
-      id: "sample-3",
-      title: "RBSL Season 1 — Registration Deadline",
-      description:
-        "Last day for organizations to register a Blood Strike roster for Season 1.",
-      league: "rbsl",
-      location: "Online",
-      start_time: new Date(now + 8 * day).toISOString(),
-      end_time: null,
-    },
-  ];
-}
-
-function sampleOngoing(): EventItem[] {
-  const now = Date.now();
-  const hr = 60 * 60 * 1000;
-  return [
-    {
-      id: "ongoing-sample-1",
-      title: "RCML Season 4 — Division 1, Week 6",
-      description:
-        "Live matches in progress — standings updating in real time.",
-      league: "rcml",
-      location: "Online",
-      start_time: new Date(now - 1 * hr).toISOString(),
-      end_time: new Date(now + 1 * hr).toISOString(),
-    },
-  ];
-}
-
 function EventCard({
   ev,
   showLiveBadge,
@@ -219,13 +165,7 @@ function EventCard({
   );
 }
 
-export default function EventsClient({
-  events,
-  live,
-}: {
-  events: EventItem[];
-  live: boolean;
-}) {
+export default function EventsClient({ events }: { events: EventItem[] }) {
   const [tab, setTab] = useState<Tab>("upcoming");
   const [now, setNow] = useState<number | null>(null);
   const [query, setQuery] = useState("");
@@ -238,13 +178,6 @@ export default function EventsClient({
 
   const { upcoming, ongoing, past } = useMemo(() => {
     if (now === null) return { upcoming: [], ongoing: [], past: [] };
-    if (!live) {
-      return {
-        upcoming: sampleUpcoming(),
-        ongoing: sampleOngoing(),
-        past: [] as EventItem[],
-      };
-    }
     const startMs = (e: EventItem) => new Date(e.start_time).getTime();
     const endedMs = (e: EventItem) =>
       e.ended_at ? new Date(e.ended_at).getTime() : 0;
@@ -255,7 +188,7 @@ export default function EventsClient({
         .filter((e) => !!e.ended_at)
         .sort((a, b) => endedMs(b) - endedMs(a)),
     };
-  }, [events, live, now]);
+  }, [events, now]);
 
   const searchEvents = (items: EventItem[]) => {
     const term = query.trim().toLowerCase();
@@ -367,13 +300,6 @@ export default function EventsClient({
         </div>
       )}
 
-      {ready && (
-        <p className="field-hint" style={{ marginTop: "1.5rem" }}>
-          {live
-            ? "Showing live events from Supabase."
-            : "Sample schedule shown — no live events found yet."}
-        </p>
-      )}
     </>
   );
 }
