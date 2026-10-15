@@ -665,6 +665,7 @@ export default function AdminClient() {
       verifications: gameAccounts.filter(
         (row) => row.verification_status === "pending"
       ).length,
+      audit_logs: 0,
       events: events.filter(
         (row) => !row.ended_at && new Date(row.start_time).getTime() <= now
       ).length,
