@@ -447,7 +447,7 @@ export default function AdminClient() {
           details: item.details,
           timestamp: item.timestamp,
         }));
-        const { error } = await supabase.from("admin_audit_logs").insert(dbPayload);
+        const { error } = await (supabase as any).from("admin_audit_logs").insert(dbPayload);
         if (error && error.code !== "42P01") {
           console.warn("Supabase audit log insert notice:", error.message);
         }
@@ -604,7 +604,7 @@ export default function AdminClient() {
     // Load audit logs (remote Supabase table with localStorage fallback)
     let remoteLogs: AuditLogEntry[] = [];
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("admin_audit_logs")
         .select("*")
         .order("timestamp", { ascending: false })
