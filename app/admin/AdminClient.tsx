@@ -266,6 +266,14 @@ function pageCountFor(count: number) {
   return Math.max(1, Math.ceil(count / PAGE_SIZE));
 }
 
+function parseRoster(rosterStr: string | null | undefined): string[] {
+  if (!rosterStr) return [];
+  return rosterStr
+    .split(/[\r\n,;]+/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+}
+
 function profileInfo(profile: ProfileInfo | ProfileInfo[] | null) {
   return Array.isArray(profile) ? profile[0] ?? null : profile;
 }
@@ -291,6 +299,59 @@ export default function AdminClient() {
   const [userId, setUserId] = useState<string | null>(null);
 
   const [registrations, setRegistrations] = useState<Registration[]>([]);
+  const [inspectingRegistration, setInspectingRegistration] = useState<Registration | null>(null);
+  const [inspectingVerification, setInspectingVerification] = useState<GameAccount | null>(null);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  const activeInspectedRegistration = useMemo(() => {
+    if (!inspectingRegistration) return null;
+    return (
+      registrations.find((r) => r.id === inspectingRegistration.id) ??
+      inspectingRegistration
+    );
+  }, [inspectingRegistration, registrations]);
+
+  const activeInspectedVerification = useMemo(() => {
+    if (!inspectingVerification) return null;
+    return (
+      gameAccounts.find((g) => g.id === inspectingVerification.id) ??
+      inspectingVerification
+    );
+  }, [inspectingVerification, gameAccounts]);
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setInspectingRegistration(null);
+        setInspectingVerification(null);
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  useEffect(() => {
+    if (activeInspectedRegistration || activeInspectedVerification) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [activeInspectedRegistration, activeInspectedVerification]);
+
+  const copyToClipboard = useCallback((text: string, key: string) => {
+    if (!text) return;
+    if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+      void navigator.clipboard.writeText(text).then(() => {
+        setCopiedKey(key);
+        setTimeout(() => {
+          setCopiedKey((curr) => (curr === key ? null : curr));
+        }, 1800);
+      }).catch(() => {});
+    }
+  }, []);
   const [organizations, setOrganizations] = useState<OrgItem[]>([]);
   const [gameAccounts, setGameAccounts] = useState<GameAccount[]>([]);
   const [events, setEvents] = useState<EventRow[]>([]);
@@ -1516,6 +1577,8 @@ export default function AdminClient() {
                       setSearchQuery("");
                       setStatusFilter("all");
                       setSelectedIds(new Set());
+                      setInspectingRegistration(null);
+                      setInspectingVerification(null);
                     }}
                   >
                     <span className="admin-tab-label">{tab.label}</span>
@@ -1648,7 +1711,16 @@ export default function AdminClient() {
                   ) : (
                     <div className="admin-card-list">
                       {pageSlice(filteredRegistrations, page).map((row) => (
-                        <article className="admin-record" key={row.id}>
+                        <article
+                          className="admin-record admin-record-interactive"
+                          key={row.id}
+                          onClick={(e) => {
+                            const target = e.target as HTMLElement;
+                            if (!target.closest("button, a, input, select, label, textarea")) {
+                              setInspectingRegistration(row);
+                            }
+                          }}
+                        >
                           <div className="admin-record-heading">
                             <div style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem" }}>
                               <input
@@ -1675,35 +1747,44 @@ export default function AdminClient() {
                           <dl className="admin-detail-grid">
                             <div><dt>League</dt><dd>{row.league.toUpperCase()}</dd></div>
                             <div><dt>Captain</dt><dd>{row.captain_name}</dd></div>
-                            <div><dt>Email</dt><dd><a href={`mailto:${row.captain_email}`}>{row.captain_email}</a></dd></div>
-                            <div><dt>Discord</dt><dd>{row.discord || "—"}</dd></div>
                             <div><dt>Region</dt><dd>{row.region || "—"}</dd></div>
                           </dl>
-                          <p><strong>Roster:</strong> {row.roster}</p>
-                          {row.notes && <p><strong>Notes:</strong> {row.notes}</p>}
-                          {row.status === "pending" && (
-                            <div className="admin-actions">
-                              <button className="btn btn-primary" disabled={busy} onClick={() => changeRegistrationStatus(row, "approved")}>Approve</button>
-                              <button className="btn btn-ghost" disabled={busy} onClick={() => changeRegistrationStatus(row, "rejected")}>Reject</button>
-                            </div>
-                          )}
-                          {row.status === "approved" && (
-                            <div className="admin-actions">
+                          <div className="admin-roster-preview-box">
+                            <span className="admin-preview-label">
+                              Roster ({parseRoster(row.roster).length} players)
+                            </span>
+                            <p className="admin-roster-clamp">{row.roster}</p>
+                          </div>
+                          <div className="admin-actions">
+                            <button
+                              type="button"
+                              className="btn btn-secondary admin-inspect-btn"
+                              onClick={() => setInspectingRegistration(row)}
+                            >
+                              Inspect Details →
+                            </button>
+                            {row.status === "pending" && (
+                              <>
+                                <button className="btn btn-primary" disabled={busy} onClick={() => changeRegistrationStatus(row, "approved")}>Approve</button>
+                                <button className="btn btn-ghost" disabled={busy} onClick={() => changeRegistrationStatus(row, "rejected")}>Reject</button>
+                              </>
+                            )}
+                            {row.status === "approved" && (
                               <button type="button" className="btn btn-ghost" disabled={busy} onClick={() => revokeApproval(row)}>
                                 Revoke Approval
                               </button>
-                            </div>
-                          )}
-                          {row.status === "rejected" && (
-                            <div className="admin-actions">
-                              <button type="button" className="btn btn-ghost" disabled={busy} onClick={() => changeRegistrationStatus(row, "pending")}>
-                                Re-open (Pending)
-                              </button>
-                              <button type="button" className="btn btn-primary" disabled={busy} onClick={() => changeRegistrationStatus(row, "approved")}>
-                                Approve
-                              </button>
-                            </div>
-                          )}
+                            )}
+                            {row.status === "rejected" && (
+                              <>
+                                <button type="button" className="btn btn-ghost" disabled={busy} onClick={() => changeRegistrationStatus(row, "pending")}>
+                                  Re-open
+                                </button>
+                                <button type="button" className="btn btn-primary" disabled={busy} onClick={() => changeRegistrationStatus(row, "approved")}>
+                                  Approve
+                                </button>
+                              </>
+                            )}
+                          </div>
                         </article>
                       ))}
                     </div>
@@ -1856,7 +1937,16 @@ export default function AdminClient() {
                   ) : (
                     <div className="admin-card-list">
                       {pageSlice(filteredVerifications, page).map((row) => (
-                        <article className="admin-record" key={row.id}>
+                        <article
+                          className="admin-record admin-record-interactive"
+                          key={row.id}
+                          onClick={(e) => {
+                            const target = e.target as HTMLElement;
+                            if (!target.closest("button, a, input, select, label, textarea")) {
+                              setInspectingVerification(row);
+                            }
+                          }}
+                        >
                           <div className="admin-record-heading">
                             <div style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem" }}>
                               <input
@@ -1875,11 +1965,16 @@ export default function AdminClient() {
                           </div>
                           <dl className="admin-detail-grid">
                             <div><dt>Player</dt><dd>{profileInfo(row.profile)?.display_name || "Unknown player"}</dd></div>
-                            <div><dt>Player ID</dt><dd>{profileInfo(row.profile)?.player_id || profileInfo(row.profile)?.league_id || "—"}</dd></div>
                             <div><dt>Game UID</dt><dd>{row.game_uid || "—"}</dd></div>
-                            <div><dt>Verification code</dt><dd>{row.verification_code || "—"}</dd></div>
                           </dl>
                           <div className="admin-actions">
+                            <button
+                              type="button"
+                              className="btn btn-secondary admin-inspect-btn"
+                              onClick={() => setInspectingVerification(row)}
+                            >
+                              Inspect Details →
+                            </button>
                             <button className="btn btn-primary" disabled={busy} onClick={() => changeVerification(row, "verified")}>Verify</button>
                             <button className="btn btn-ghost" disabled={busy} onClick={() => changeVerification(row, "rejected")}>Reject</button>
                           </div>
@@ -2321,6 +2416,477 @@ export default function AdminClient() {
           </div>
         </div>
       </section>
+
+      {/* Registration Slide-Over Drawer */}
+      {activeInspectedRegistration && (
+        <div
+          className="admin-drawer-overlay"
+          onClick={() => setInspectingRegistration(null)}
+          role="presentation"
+        >
+          <aside
+            className="admin-drawer"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="drawer-reg-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="admin-drawer-header">
+              <div className="admin-drawer-header-top">
+                <div className="admin-drawer-header-badges">
+                  <span className={`admin-status is-${activeInspectedRegistration.status}`}>
+                    {activeInspectedRegistration.status}
+                  </span>
+                  <span className="admin-drawer-meta-pill">
+                    {activeInspectedRegistration.league.toUpperCase()}
+                  </span>
+                  {activeInspectedRegistration.region && (
+                    <span className="admin-drawer-meta-pill">
+                      {activeInspectedRegistration.region}
+                    </span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  className="admin-drawer-close"
+                  onClick={() => setInspectingRegistration(null)}
+                  aria-label="Close drawer"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="admin-drawer-identity">
+                {activeInspectedRegistration.logo_url ? (
+                  <img
+                    src={activeInspectedRegistration.logo_url}
+                    alt=""
+                    className="admin-drawer-logo"
+                  />
+                ) : (
+                  <div className="admin-drawer-logo-placeholder">
+                    {activeInspectedRegistration.team_tag ||
+                      activeInspectedRegistration.team_name.slice(0, 2).toUpperCase()}
+                  </div>
+                )}
+                <div>
+                  <h2 id="drawer-reg-title" className="admin-drawer-title">
+                    {activeInspectedRegistration.team_name}
+                  </h2>
+                  <p className="admin-drawer-tag">[{activeInspectedRegistration.team_tag}]</p>
+                </div>
+              </div>
+
+              <div className="admin-drawer-quick-bar">
+                <span className="admin-drawer-submitted-time">
+                  Submitted {dateLabel(activeInspectedRegistration.created_at)}
+                </span>
+                <div className="admin-drawer-actions">
+                  {activeInspectedRegistration.status === "pending" && (
+                    <>
+                      <button
+                        type="button"
+                        className="btn btn-primary"
+                        disabled={busy}
+                        onClick={() => changeRegistrationStatus(activeInspectedRegistration, "approved")}
+                      >
+                        Approve Team
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-ghost"
+                        disabled={busy}
+                        onClick={() => changeRegistrationStatus(activeInspectedRegistration, "rejected")}
+                      >
+                        Reject
+                      </button>
+                    </>
+                  )}
+                  {activeInspectedRegistration.status === "approved" && (
+                    <button
+                      type="button"
+                      className="btn btn-ghost"
+                      disabled={busy}
+                      onClick={() => revokeApproval(activeInspectedRegistration)}
+                    >
+                      Revoke Approval
+                    </button>
+                  )}
+                  {activeInspectedRegistration.status === "rejected" && (
+                    <>
+                      <button
+                        type="button"
+                        className="btn btn-ghost"
+                        disabled={busy}
+                        onClick={() => changeRegistrationStatus(activeInspectedRegistration, "pending")}
+                      >
+                        Re-open (Pending)
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-primary"
+                        disabled={busy}
+                        onClick={() => changeRegistrationStatus(activeInspectedRegistration, "approved")}
+                      >
+                        Approve Team
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="admin-drawer-body">
+              {/* Captain & Contact Section */}
+              <section className="admin-drawer-section">
+                <h3 className="admin-drawer-section-heading">Captain & Contact</h3>
+                <div className="admin-drawer-kv-list">
+                  <div className="admin-drawer-kv-row">
+                    <span className="admin-drawer-k">Captain Name</span>
+                    <span className="admin-drawer-v">{activeInspectedRegistration.captain_name}</span>
+                  </div>
+                  <div className="admin-drawer-kv-row">
+                    <span className="admin-drawer-k">Captain Email</span>
+                    <div className="admin-drawer-v-with-copy">
+                      <a
+                        href={`mailto:${activeInspectedRegistration.captain_email}`}
+                        className="admin-drawer-link"
+                      >
+                        {activeInspectedRegistration.captain_email}
+                      </a>
+                      <button
+                        type="button"
+                        className="admin-copy-btn"
+                        onClick={() => copyToClipboard(activeInspectedRegistration.captain_email, "email")}
+                        title="Copy email address"
+                      >
+                        {copiedKey === "email" ? "Copied!" : "Copy"}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="admin-drawer-kv-row">
+                    <span className="admin-drawer-k">Discord Handle</span>
+                    <div className="admin-drawer-v-with-copy">
+                      <span className="admin-drawer-discord-val">
+                        {activeInspectedRegistration.discord || "—"}
+                      </span>
+                      {activeInspectedRegistration.discord && (
+                        <button
+                          type="button"
+                          className="admin-copy-btn"
+                          onClick={() => copyToClipboard(activeInspectedRegistration.discord!, "discord")}
+                          title="Copy Discord handle"
+                        >
+                          {copiedKey === "discord" ? "Copied!" : "Copy"}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <div className="admin-drawer-kv-row">
+                    <span className="admin-drawer-k">Region</span>
+                    <span className="admin-drawer-v">{activeInspectedRegistration.region || "—"}</span>
+                  </div>
+                  <div className="admin-drawer-kv-row">
+                    <span className="admin-drawer-k">League</span>
+                    <span className="admin-drawer-v">{activeInspectedRegistration.league.toUpperCase()}</span>
+                  </div>
+                </div>
+              </section>
+
+              {/* Roster Section */}
+              <section className="admin-drawer-section">
+                <div className="admin-drawer-section-header-inline">
+                  <h3 className="admin-drawer-section-heading">
+                    Team Roster ({parseRoster(activeInspectedRegistration.roster).length} players)
+                  </h3>
+                  <button
+                    type="button"
+                    className="admin-copy-btn"
+                    onClick={() => copyToClipboard(activeInspectedRegistration.roster, "roster")}
+                    title="Copy full roster text"
+                  >
+                    {copiedKey === "roster" ? "Copied Full Roster!" : "Copy Full Roster"}
+                  </button>
+                </div>
+
+                <div className="admin-drawer-roster-list">
+                  {parseRoster(activeInspectedRegistration.roster).map((player, idx) => (
+                    <div className="admin-drawer-roster-item" key={idx}>
+                      <span className="admin-drawer-player-idx">#{idx + 1}</span>
+                      <span className="admin-drawer-player-name">{player}</span>
+                      <button
+                        type="button"
+                        className="admin-copy-btn-tiny"
+                        onClick={() => copyToClipboard(player, `player-${idx}`)}
+                        title="Copy player name"
+                      >
+                        {copiedKey === `player-${idx}` ? "✓" : "Copy"}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <details className="admin-drawer-raw-roster">
+                  <summary>View raw roster text</summary>
+                  <pre>{activeInspectedRegistration.roster}</pre>
+                </details>
+              </section>
+
+              {/* Submission Notes */}
+              <section className="admin-drawer-section">
+                <h3 className="admin-drawer-section-heading">Submission Notes</h3>
+                {activeInspectedRegistration.notes ? (
+                  <div className="admin-drawer-notes-box">
+                    <p>{activeInspectedRegistration.notes}</p>
+                  </div>
+                ) : (
+                  <p className="admin-muted" style={{ fontSize: "0.88rem", margin: 0 }}>
+                    No extra notes submitted with this registration.
+                  </p>
+                )}
+              </section>
+
+              {/* Record Metadata */}
+              <section className="admin-drawer-section">
+                <h3 className="admin-drawer-section-heading">Record Metadata</h3>
+                <div className="admin-drawer-kv-list">
+                  <div className="admin-drawer-kv-row">
+                    <span className="admin-drawer-k">Registration ID</span>
+                    <div className="admin-drawer-v-with-copy">
+                      <code className="admin-drawer-code">{activeInspectedRegistration.id}</code>
+                      <button
+                        type="button"
+                        className="admin-copy-btn"
+                        onClick={() => copyToClipboard(activeInspectedRegistration.id, "reg-id")}
+                      >
+                        {copiedKey === "reg-id" ? "Copied!" : "Copy"}
+                      </button>
+                    </div>
+                  </div>
+                  {activeInspectedRegistration.submitted_by && (
+                    <div className="admin-drawer-kv-row">
+                      <span className="admin-drawer-k">Submitted By</span>
+                      <div className="admin-drawer-v-with-copy">
+                        <code className="admin-drawer-code">{activeInspectedRegistration.submitted_by}</code>
+                        <button
+                          type="button"
+                          className="admin-copy-btn"
+                          onClick={() => copyToClipboard(activeInspectedRegistration.submitted_by!, "sub-id")}
+                        >
+                          {copiedKey === "sub-id" ? "Copied!" : "Copy"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </section>
+            </div>
+
+            <div className="admin-drawer-footer">
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => setInspectingRegistration(null)}
+              >
+                Close Drawer
+              </button>
+            </div>
+          </aside>
+        </div>
+      )}
+
+      {/* Game Verification Slide-Over Drawer */}
+      {activeInspectedVerification && (
+        <div
+          className="admin-drawer-overlay"
+          onClick={() => setInspectingVerification(null)}
+          role="presentation"
+        >
+          <aside
+            className="admin-drawer"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="drawer-ver-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="admin-drawer-header">
+              <div className="admin-drawer-header-top">
+                <div className="admin-drawer-header-badges">
+                  <span className="admin-status is-pending">
+                    {activeInspectedVerification.verification_status}
+                  </span>
+                  <span className="admin-drawer-meta-pill">
+                    {activeInspectedVerification.game.toUpperCase()}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  className="admin-drawer-close"
+                  onClick={() => setInspectingVerification(null)}
+                  aria-label="Close drawer"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="admin-drawer-identity">
+                <div className="admin-drawer-logo-placeholder">
+                  🎮
+                </div>
+                <div>
+                  <h2 id="drawer-ver-title" className="admin-drawer-title">
+                    {activeInspectedVerification.ign}
+                  </h2>
+                  <p className="admin-drawer-tag">{activeInspectedVerification.game.toUpperCase()} Account</p>
+                </div>
+              </div>
+
+              <div className="admin-drawer-quick-bar">
+                <span className="admin-drawer-submitted-time">
+                  Last Updated {dateLabel(activeInspectedVerification.updated_at)}
+                </span>
+                <div className="admin-drawer-actions">
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    disabled={busy}
+                    onClick={() => changeVerification(activeInspectedVerification, "verified")}
+                  >
+                    Verify Account
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    disabled={busy}
+                    onClick={() => changeVerification(activeInspectedVerification, "rejected")}
+                  >
+                    Reject
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="admin-drawer-body">
+              <section className="admin-drawer-section">
+                <h3 className="admin-drawer-section-heading">Player Information</h3>
+                <div className="admin-drawer-kv-list">
+                  <div className="admin-drawer-kv-row">
+                    <span className="admin-drawer-k">Display Name</span>
+                    <span className="admin-drawer-v">
+                      {profileInfo(activeInspectedVerification.profile)?.display_name || "Unknown player"}
+                    </span>
+                  </div>
+                  <div className="admin-drawer-kv-row">
+                    <span className="admin-drawer-k">Player / League ID</span>
+                    <div className="admin-drawer-v-with-copy">
+                      <span className="admin-drawer-v">
+                        {profileInfo(activeInspectedVerification.profile)?.player_id ||
+                          profileInfo(activeInspectedVerification.profile)?.league_id ||
+                          "—"}
+                      </span>
+                      {(profileInfo(activeInspectedVerification.profile)?.player_id ||
+                        profileInfo(activeInspectedVerification.profile)?.league_id) && (
+                        <button
+                          type="button"
+                          className="admin-copy-btn"
+                          onClick={() =>
+                            copyToClipboard(
+                              (profileInfo(activeInspectedVerification.profile)?.player_id ||
+                                profileInfo(activeInspectedVerification.profile)?.league_id)!,
+                              "player-id"
+                            )
+                          }
+                        >
+                          {copiedKey === "player-id" ? "Copied!" : "Copy"}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <div className="admin-drawer-kv-row">
+                    <span className="admin-drawer-k">Profile UUID</span>
+                    <div className="admin-drawer-v-with-copy">
+                      <code className="admin-drawer-code">{activeInspectedVerification.profile_id}</code>
+                      <button
+                        type="button"
+                        className="admin-copy-btn"
+                        onClick={() => copyToClipboard(activeInspectedVerification.profile_id, "profile-uuid")}
+                      >
+                        {copiedKey === "profile-uuid" ? "Copied!" : "Copy"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <section className="admin-drawer-section">
+                <h3 className="admin-drawer-section-heading">Game Account Verification</h3>
+                <div className="admin-drawer-kv-list">
+                  <div className="admin-drawer-kv-row">
+                    <span className="admin-drawer-k">In-Game Name (IGN)</span>
+                    <div className="admin-drawer-v-with-copy">
+                      <span className="admin-drawer-v font-bold">{activeInspectedVerification.ign}</span>
+                      <button
+                        type="button"
+                        className="admin-copy-btn"
+                        onClick={() => copyToClipboard(activeInspectedVerification.ign, "ign")}
+                      >
+                        {copiedKey === "ign" ? "Copied!" : "Copy"}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="admin-drawer-kv-row">
+                    <span className="admin-drawer-k">Game UID</span>
+                    <div className="admin-drawer-v-with-copy">
+                      <code className="admin-drawer-code">{activeInspectedVerification.game_uid || "—"}</code>
+                      {activeInspectedVerification.game_uid && (
+                        <button
+                          type="button"
+                          className="admin-copy-btn"
+                          onClick={() => copyToClipboard(activeInspectedVerification.game_uid!, "game-uid")}
+                        >
+                          {copiedKey === "game-uid" ? "Copied!" : "Copy"}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <div className="admin-drawer-kv-row">
+                    <span className="admin-drawer-k">Verification Code</span>
+                    <div className="admin-drawer-v-with-copy">
+                      <code
+                        className="admin-drawer-code"
+                        style={{ fontSize: "1rem", color: "var(--accent, #38bdf8)", fontWeight: "bold" }}
+                      >
+                        {activeInspectedVerification.verification_code || "—"}
+                      </code>
+                      {activeInspectedVerification.verification_code && (
+                        <button
+                          type="button"
+                          className="admin-copy-btn"
+                          onClick={() =>
+                            copyToClipboard(activeInspectedVerification.verification_code!, "ver-code")
+                          }
+                        >
+                          {copiedKey === "ver-code" ? "Copied!" : "Copy"}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            <div className="admin-drawer-footer">
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => setInspectingVerification(null)}
+              >
+                Close Drawer
+              </button>
+            </div>
+          </aside>
+        </div>
+      )}
     </main>
   );
 }
