@@ -3647,7 +3647,7 @@ body:has(.msg-layout) .site-footer {
 
 .admin-sidebar {
   position: sticky;
-  top: 1rem;
+  top: 5rem;
   background: var(--panel);
   border: 1px solid var(--line);
   padding: 0.85rem;
@@ -3681,8 +3681,8 @@ body:has(.msg-layout) .site-footer {
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-  min-height: 38px;
-  padding: 0.5rem 0.75rem;
+  min-height: 40px;
+  padding: 0.55rem 0.75rem;
   border: 1px solid transparent;
   background: transparent;
   color: var(--paper-dim);
@@ -3690,8 +3690,9 @@ body:has(.msg-layout) .site-footer {
   letter-spacing: 0.03em;
   text-align: left;
   cursor: pointer;
-  border-radius: 3px;
+  border-radius: 4px;
   transition: all 0.15s ease;
+  position: relative;
 }
 
 .admin-tab:hover {
@@ -3703,7 +3704,7 @@ body:has(.msg-layout) .site-footer {
 .admin-tab.is-active,
 .admin-tab[aria-selected="true"] {
   border-color: var(--amber);
-  background: rgba(230, 162, 60, 0.1);
+  background: rgba(230, 162, 60, 0.12);
   color: var(--paper);
   font-weight: 600;
   box-shadow: inset 3px 0 0 var(--amber);
@@ -3713,6 +3714,31 @@ body:has(.msg-layout) .site-footer {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.admin-tab-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-left: auto;
+}
+
+.admin-tab-arrow {
+  font-size: 0.85rem;
+  color: var(--amber);
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: all 0.15s ease;
+}
+
+.admin-tab.is-active .admin-tab-arrow {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.admin-tab:hover .admin-tab-arrow {
+  opacity: 0.6;
+  transform: translateX(0);
 }
 
 .admin-tab-count {
@@ -3733,7 +3759,23 @@ body:has(.msg-layout) .site-footer {
   min-width: 0;
 }
 
-@media (max-width: 900px) {
+/* Maintain side-by-side layout on tablets & narrow desktop windows (720px - 1024px) */
+@media (max-width: 1024px) and (min-width: 721px) {
+  .admin-layout {
+    grid-template-columns: 205px minmax(0, 1fr);
+    gap: 1rem;
+  }
+  .admin-sidebar {
+    padding: 0.65rem;
+  }
+  .admin-tab {
+    padding: 0.5rem 0.6rem;
+    font-size: 0.72rem;
+  }
+}
+
+/* Mobile fallback below 720px */
+@media (max-width: 720px) {
   .admin-layout {
     grid-template-columns: 1fr;
     gap: 1rem;
@@ -3743,6 +3785,9 @@ body:has(.msg-layout) .site-footer {
     padding: 0.5rem;
   }
   .admin-sidebar-header {
+    display: none;
+  }
+  .admin-tab-arrow {
     display: none;
   }
   .admin-tabs {

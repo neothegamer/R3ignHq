@@ -1492,59 +1492,60 @@ export default function AdminClient() {
             </p>
           )}
 
-          <div className="admin-tabs" role="tablist" aria-label="Admin sections">
-            {TABS.map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                role="tab"
-                aria-selected={activeTab === tab.id}
-                className={`admin-tab${activeTab === tab.id ? " is-active" : ""}`}
-                style={
-                  activeTab === tab.id
-                    ? {
-                        borderColor: "var(--amber)",
-                        color: "var(--paper)",
-                        background: "rgba(255, 255, 255, 0.08)",
-                        fontWeight: 600,
-                        boxShadow: "inset 0 -2px 0 var(--amber)",
-                      }
-                    : undefined
-                }
-                onClick={() => {
-                  setActiveTab(tab.id);
-                  setNotice(null);
-                  setDraft(EMPTY_DRAFT);
-                  setEditing(false);
-                  setPage(1);
-                  setSearchQuery("");
-                  setStatusFilter("all");
-                  setSelectedIds(new Set());
-                }}
-              >
-                {tab.label}
-                {counts[tab.id] > 0 ? (
-                  <span className="admin-tab-count" aria-label={`${counts[tab.id]} pending`}>
-                    {counts[tab.id]}
-                  </span>
-                ) : tab.id === "organizations" && organizations.length > 0 ? (
-                  <span
-                    className="admin-tab-count"
-                    style={{ background: "rgba(255,255,255,0.08)", color: "var(--paper-dim)" }}
+          <div className="admin-layout">
+            <aside className="admin-sidebar" aria-label="Admin Navigation">
+              <div className="admin-sidebar-header">
+                <span className="admin-sidebar-title">Navigation</span>
+              </div>
+              <nav className="admin-tabs" role="tablist" aria-label="Admin sections">
+                {TABS.map((tab) => (
+                  <button
+                    key={tab.id}
+                    id={`admin-tab-${tab.id}`}
+                    type="button"
+                    role="tab"
+                    aria-selected={activeTab === tab.id}
+                    aria-controls={`admin-panel-${tab.id}`}
+                    className={`admin-tab${activeTab === tab.id ? " is-active" : ""}`}
+                    onClick={() => {
+                      setActiveTab(tab.id);
+                      setNotice(null);
+                      setDraft(EMPTY_DRAFT);
+                      setEditing(false);
+                      setPage(1);
+                      setSearchQuery("");
+                      setStatusFilter("all");
+                      setSelectedIds(new Set());
+                    }}
                   >
-                    {organizations.length}
-                  </span>
-                ) : null}
-              </button>
-            ))}
-          </div>
+                    <span className="admin-tab-label">{tab.label}</span>
+                    <span className="admin-tab-meta">
+                      {counts[tab.id] > 0 ? (
+                        <span className="admin-tab-count" aria-label={`${counts[tab.id]} pending`}>
+                          {counts[tab.id]}
+                        </span>
+                      ) : tab.id === "organizations" && organizations.length > 0 ? (
+                        <span
+                          className="admin-tab-count"
+                          style={{ background: "rgba(255,255,255,0.08)", color: "var(--paper-dim)" }}
+                        >
+                          {organizations.length}
+                        </span>
+                      ) : null}
+                      <span className="admin-tab-arrow" aria-hidden="true">→</span>
+                    </span>
+                  </button>
+                ))}
+              </nav>
+            </aside>
 
-          {loading ? (
+            <div className="admin-main">
+              {loading ? (
             <p className="field-hint" role="status">
               Loading admin data…
             </p>
           ) : (
-            <div className="admin-panel" role="tabpanel">
+            <div id={`admin-panel-${activeTab}`} className="admin-panel" role="tabpanel" aria-labelledby={`admin-tab-${activeTab}`}>
               {loadErrors[activeTab] && (
                 <p className="admin-notice is-error" role="alert">
                   Could not load this section: {loadErrors[activeTab]}
@@ -2316,6 +2317,8 @@ export default function AdminClient() {
               )}
             </div>
           )}
+            </div>
+          </div>
         </div>
       </section>
     </main>
