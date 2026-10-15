@@ -14,12 +14,29 @@ type Tab =
   | "registrations"
   | "organizations"
   | "verifications"
+  | "audit_logs"
   | "events"
   | "news"
   | "awards"
   | "highlights"
   | "reports"
   | "admins";
+
+type AuditAction = "approved" | "rejected" | "revoked" | "reopened";
+
+type AuditLogEntry = {
+  id: string;
+  action: AuditAction;
+  target_id: string;
+  team_name: string;
+  team_tag: string | null;
+  league: string | null;
+  admin_id: string | null;
+  admin_name: string | null;
+  admin_email: string | null;
+  details: string | null;
+  timestamp: string;
+};
 
 type PlayerReport = {
   id: string;
@@ -157,6 +174,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "registrations", label: "Registrations" },
   { id: "organizations", label: "Organizations" },
   { id: "verifications", label: "Game Verifications" },
+  { id: "audit_logs", label: "Audit Log" },
   { id: "events", label: "Events" },
   { id: "news", label: "News" },
   { id: "awards", label: "Awards" },
@@ -266,6 +284,39 @@ function pageCountFor(count: number) {
   return Math.max(1, Math.ceil(count / PAGE_SIZE));
 }
 
+function timeAgo(isoString: string): string {
+  try {
+    const diffMs = Date.now() - new Date(isoString).getTime();
+    const diffSec = Math.floor(diffMs / 1000);
+    if (diffSec < 60) return "Just now";
+    const diffMin = Math.floor(diffSec / 60);
+    if (diffMin < 60) return `${diffMin}m ago`;
+    const diffHours = Math.floor(diffMin / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays < 30) return `${diffDays}d ago`;
+    return new Date(isoString).toLocaleDateString();
+  } catch {
+    return "Recent";
+  }
+}
+
+function formatTimestamp(isoString: string): string {
+  try {
+    const d = new Date(isoString);
+    return d.toLocaleString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      second: "2-digit",
+    });
+  } catch {
+    return isoString;
+  }
+}
+
 function parseRoster(rosterStr: string | null | undefined): string[] {
   if (!rosterStr) return [];
   return rosterStr
@@ -297,11 +348,111 @@ export default function AdminClient() {
   } | null>(null);
   const [busy, setBusy] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
+  const [auditActionFilter, setAuditActionFilter] = useState<string>("all");
 
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [inspectingRegistration, setInspectingRegistration] = useState<Registration | null>(null);
   const [inspectingVerification, setInspectingVerification] = useState<GameAccount | null>(null);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  const currentAdminInfo = useMemo(() => {
+    if (!userId) {
+      return { id: null, name: "Admin", email: userEmail };
+    }
+    const match = admins.find((a) => a.profile_id === userId);
+    const p = Array.isArray(match?.profile) ? match?.profile[0] : match?.profile;
+    const name = p?.display_name || (userEmail ? userEmail.split("@")[0] : "Admin");
+    return {
+      id: userId,
+      name,
+      email: userEmail,
+    };
+  }, [userId, userEmail, admins]);
+
+  const recordAuditLogs = useCallback(
+    async (
+      entries: Array<{
+        action: AuditAction;
+        target_id: string;
+        team_name: string;
+        team_tag?: string | null;
+        league?: string | null;
+        details?: string | null;
+      }>
+    ) => {
+      const now = new Date().toISOString();
+      const newItems: AuditLogEntry[] = entries.map((e) => ({
+        id:
+          typeof crypto !== "undefined" && crypto.randomUUID
+            ? crypto.randomUUID()
+            : `log_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+        action: e.action,
+        target_id: e.target_id,
+        team_name: e.team_name,
+        team_tag: e.team_tag ?? null,
+        league: e.league ?? null,
+        admin_id: currentAdminInfo.id,
+        admin_name: currentAdminInfo.name,
+        admin_email: currentAdminInfo.email,
+        details: e.details ?? null,
+        timestamp: now,
+      }));
+
+      setAuditLogs((prev) => {
+        const merged = [...newItems, ...prev];
+        const trimmed = merged.slice(0, 500);
+        try {
+          if (typeof window !== "undefined") {
+            localStorage.setItem("r3ign_admin_audit_logs", JSON.stringify(trimmed));
+          }
+        } catch (err) {
+          console.warn("Could not save audit log to localStorage", err);
+        }
+        return trimmed;
+      });
+
+      try {
+        const dbPayload = newItems.map((item) => ({
+          id: item.id,
+          action: item.action,
+          target_id: item.target_id,
+          team_name: item.team_name,
+          team_tag: item.team_tag,
+          league: item.league,
+          admin_id: item.admin_id,
+          admin_name: item.admin_name,
+          admin_email: item.admin_email,
+          details: item.details,
+          timestamp: item.timestamp,
+        }));
+        const { error } = await supabase.from("admin_audit_logs").insert(dbPayload);
+        if (error && error.code !== "42P01") {
+          console.warn("Supabase audit log insert notice:", error.message);
+        }
+      } catch {
+        // Table may not exist yet in user's Supabase schema; handled gracefully
+      }
+    },
+    [currentAdminInfo, supabase]
+  );
+
+  function exportAuditLogsJson() {
+    try {
+      const blob = new Blob([JSON.stringify(auditLogs, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `r3ign-audit-log-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Export error:", err);
+    }
+  }
 
   const activeInspectedRegistration = useMemo(() => {
     if (!inspectingRegistration) return null;
@@ -447,6 +598,41 @@ export default function AdminClient() {
     setAdmins((adminResult.data as AdminUser[] | null) ?? []);
     setReports((reportResult.data as PlayerReport[] | null) ?? []);
     setUserId(authResult.data.user?.id ?? null);
+    setUserEmail(authResult.data.user?.email ?? null);
+
+    // Load audit logs (remote Supabase table with localStorage fallback)
+    let remoteLogs: AuditLogEntry[] = [];
+    try {
+      const { data, error } = await supabase
+        .from("admin_audit_logs")
+        .select("*")
+        .order("timestamp", { ascending: false })
+        .limit(200);
+      if (!error && Array.isArray(data)) {
+        remoteLogs = data as AuditLogEntry[];
+      }
+    } catch {}
+
+    let localLogs: AuditLogEntry[] = [];
+    try {
+      if (typeof window !== "undefined") {
+        const raw = localStorage.getItem("r3ign_admin_audit_logs");
+        if (raw) {
+          localLogs = JSON.parse(raw);
+        }
+      }
+    } catch {}
+
+    const seenLogs = new Set<string>();
+    const combinedLogs: AuditLogEntry[] = [];
+    for (const item of [...remoteLogs, ...localLogs]) {
+      if (item && item.id && !seenLogs.has(item.id)) {
+        seenLogs.add(item.id);
+        combinedLogs.push(item);
+      }
+    }
+    combinedLogs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    setAuditLogs(combinedLogs);
 
     const errors: Partial<Record<Tab, string>> = {};
     if (registrationResult.error) errors.registrations = registrationResult.error.message;
@@ -550,10 +736,32 @@ export default function AdminClient() {
     });
   }, [reports, searchQuery, statusFilter]);
 
+  const filteredAuditLogs = useMemo(() => {
+    let list = auditLogs;
+    if (auditActionFilter !== "all") {
+      list = list.filter((item) => item.action === auditActionFilter);
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter((item) => {
+        return (
+          item.team_name.toLowerCase().includes(q) ||
+          (item.team_tag && item.team_tag.toLowerCase().includes(q)) ||
+          (item.admin_name && item.admin_name.toLowerCase().includes(q)) ||
+          (item.admin_email && item.admin_email.toLowerCase().includes(q)) ||
+          (item.details && item.details.toLowerCase().includes(q)) ||
+          item.action.toLowerCase().includes(q)
+        );
+      });
+    }
+    return list;
+  }, [auditLogs, auditActionFilter, searchQuery]);
+
   const tabRowCount: Record<Tab, number> = {
     registrations: filteredRegistrations.length,
     organizations: filteredOrganizations.length,
     verifications: filteredVerifications.length,
+    audit_logs: filteredAuditLogs.length,
     events: filteredEvents.length,
     news: filteredNews.length,
     awards: awards.length,
@@ -696,6 +904,17 @@ export default function AdminClient() {
           setOrganizations((prev) => prev.filter((o) => o.id !== org.id));
         }
 
+        void recordAuditLogs([
+          {
+            action: "revoked",
+            target_id: row.id,
+            team_name: row.team_name,
+            team_tag: row.team_tag,
+            league: row.league,
+            details: "Revoked approval and removed team from Organizations directory",
+          },
+        ]);
+
         setNotice({
           kind: "success",
           text: `Approval revoked for "${row.team_name}" and removed from Organizations.`,
@@ -723,6 +942,17 @@ export default function AdminClient() {
           setOrganizations(previous);
           throw error;
         }
+
+        void recordAuditLogs([
+          {
+            action: "revoked",
+            target_id: org.id,
+            team_name: org.name,
+            team_tag: org.tag,
+            league: org.league,
+            details: `Directly deleted organization "${org.name}" from directory`,
+          },
+        ]);
 
         setNotice({
           kind: "success",
@@ -780,6 +1010,17 @@ export default function AdminClient() {
           }
         }
 
+        void recordAuditLogs(
+          targetRegs.map((reg) => ({
+            action: "revoked" as AuditAction,
+            target_id: reg.id,
+            team_name: reg.team_name,
+            team_tag: reg.team_tag,
+            league: reg.league,
+            details: `Bulk revoked approval and removed from Organizations (${targetRegs.length} teams in batch)`,
+          }))
+        );
+
         setSelectedIds(new Set());
         setNotice({
           kind: "success",
@@ -820,6 +1061,18 @@ export default function AdminClient() {
             }
           }
         }
+
+        const targetedRows = previous.filter((item) => ids.includes(item.id));
+        void recordAuditLogs(
+          targetedRows.map((reg) => ({
+            action: (status === "approved" ? "approved" : "rejected") as AuditAction,
+            target_id: reg.id,
+            team_name: reg.team_name,
+            team_tag: reg.team_tag,
+            league: reg.league,
+            details: `Bulk ${status} (${ids.length} teams in batch)`,
+          }))
+        );
 
         setSelectedIds(new Set());
         setNotice({
@@ -920,6 +1173,16 @@ export default function AdminClient() {
           } catch (err) {
             console.error("Failed to sync org to table:", err);
           }
+          void recordAuditLogs([
+            {
+              action: "approved",
+              target_id: row.id,
+              team_name: row.team_name,
+              team_tag: row.team_tag,
+              league: row.league,
+              details: "Approved registration and synced to Organizations directory",
+            },
+          ]);
         } else if (status === "rejected") {
           // If rejected, also remove from organizations if it was there
           try {
@@ -933,6 +1196,27 @@ export default function AdminClient() {
               setOrganizations((prev) => prev.filter((o) => o.id !== org.id));
             }
           } catch {}
+          void recordAuditLogs([
+            {
+              action: "rejected",
+              target_id: row.id,
+              team_name: row.team_name,
+              team_tag: row.team_tag,
+              league: row.league,
+              details: "Rejected team registration",
+            },
+          ]);
+        } else if (status === "pending") {
+          void recordAuditLogs([
+            {
+              action: "reopened",
+              target_id: row.id,
+              team_name: row.team_name,
+              team_tag: row.team_tag,
+              league: row.league,
+              details: "Re-opened registration back to Pending queue",
+            },
+          ]);
         }
       }
     );
@@ -1576,6 +1860,7 @@ export default function AdminClient() {
                       setPage(1);
                       setSearchQuery("");
                       setStatusFilter("all");
+                      setAuditActionFilter("all");
                       setSelectedIds(new Set());
                       setInspectingRegistration(null);
                       setInspectingVerification(null);
@@ -1982,6 +2267,152 @@ export default function AdminClient() {
                       ))}
                     </div>
                   )}
+                  <Pager
+                    page={page}
+                    pageCount={tabPageCount}
+                    onPage={setPage}
+                  />
+                </section>
+              )}
+
+              {activeTab === "audit_logs" && (
+                <section
+                  id="admin-panel-audit_logs"
+                  role="tabpanel"
+                  aria-labelledby="admin-tab-audit_logs"
+                >
+                  <div
+                    className="admin-section-heading"
+                    style={{ alignItems: "flex-start", marginBottom: "1rem" }}
+                  >
+                    <div>
+                      <h2 id="admin-section-heading">Audit Log</h2>
+                      <p className="admin-muted" style={{ marginTop: "0.25rem" }}>
+                        History of administrative decisions on teams: approvals, rejections, and revocations.
+                      </p>
+                    </div>
+                    {auditLogs.length > 0 && (
+                      <button
+                        type="button"
+                        className="btn btn-ghost"
+                        onClick={exportAuditLogsJson}
+                        title="Download audit log as JSON"
+                      >
+                        Export Log
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="admin-toolbar">
+                    <input
+                      type="search"
+                      value={searchQuery}
+                      onChange={(e) => {
+                        setSearchQuery(e.target.value);
+                        setPage(1);
+                      }}
+                      placeholder="Search team, admin, or action…"
+                      aria-label="Filter audit logs"
+                    />
+                    <select
+                      value={auditActionFilter}
+                      onChange={(e) => {
+                        setAuditActionFilter(e.target.value);
+                        setPage(1);
+                      }}
+                      aria-label="Filter by action"
+                    >
+                      <option value="all">All actions ({auditLogs.length})</option>
+                      <option value="approved">Approved</option>
+                      <option value="rejected">Rejected</option>
+                      <option value="revoked">Revoked</option>
+                      <option value="reopened">Re-opened</option>
+                    </select>
+                  </div>
+
+                  {filteredAuditLogs.length === 0 ? (
+                    <p className="field-hint">
+                      {auditLogs.length === 0
+                        ? "No administrative decisions recorded yet. Any team approvals, rejections, or revocations will appear here automatically."
+                        : "No audit records match your filters."}
+                    </p>
+                  ) : (
+                    <div className="admin-audit-table-wrap">
+                      <table className="admin-audit-table">
+                        <thead>
+                          <tr>
+                            <th>When</th>
+                            <th>Action</th>
+                            <th>Team</th>
+                            <th>Admin</th>
+                            <th>Details</th>
+                            <th>Quick View</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {pageSlice(filteredAuditLogs, page).map((entry) => {
+                            const matchedReg = registrations.find(
+                              (r) =>
+                                r.id === entry.target_id ||
+                                r.team_name.toLowerCase() === entry.team_name.toLowerCase()
+                            );
+                            return (
+                              <tr key={entry.id}>
+                                <td>
+                                  <div className="admin-audit-cell-time">
+                                    <span className="admin-audit-rel-time">{timeAgo(entry.timestamp)}</span>
+                                    <span className="admin-audit-abs-time">{formatTimestamp(entry.timestamp)}</span>
+                                  </div>
+                                </td>
+                                <td>
+                                  <span className={`admin-audit-badge is-${entry.action}`}>
+                                    {entry.action.toUpperCase()}
+                                  </span>
+                                </td>
+                                <td>
+                                  <div className="admin-audit-team-cell">
+                                    <span className="admin-audit-team-name">{entry.team_name}</span>
+                                    {entry.team_tag && (
+                                      <span className="admin-audit-team-tag">[{entry.team_tag}]</span>
+                                    )}
+                                    {entry.league && (
+                                      <span className="admin-audit-league-tag">{entry.league}</span>
+                                    )}
+                                  </div>
+                                </td>
+                                <td>
+                                  <div className="admin-audit-admin-cell">
+                                    <span className="admin-audit-admin-name">{entry.admin_name || "Admin"}</span>
+                                    {entry.admin_email && (
+                                      <span className="admin-audit-admin-email">{entry.admin_email}</span>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="admin-audit-cell-details">
+                                  {entry.details || "—"}
+                                </td>
+                                <td>
+                                  {matchedReg ? (
+                                    <button
+                                      type="button"
+                                      className="btn btn-ghost"
+                                      style={{ padding: "0.25rem 0.6rem", fontSize: "0.75rem" }}
+                                      onClick={() => setInspectingRegistration(matchedReg)}
+                                    >
+                                      Inspect Team →
+                                    </button>
+                                  ) : (
+                                    <span className="admin-muted" style={{ fontSize: "0.75rem" }}>—</span>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
                   <Pager
                     page={page}
                     pageCount={tabPageCount}
@@ -2679,6 +3110,55 @@ export default function AdminClient() {
                     </div>
                   )}
                 </div>
+              </section>
+
+              {/* Team Audit Trail in the Drawer */}
+              <section className="admin-drawer-section">
+                <div className="admin-drawer-section-header-inline">
+                  <h3 className="admin-drawer-section-heading">Team Audit History</h3>
+                  <span className="admin-drawer-meta-pill">
+                    {auditLogs.filter(
+                      (l) =>
+                        l.target_id === activeInspectedRegistration.id ||
+                        l.team_name.toLowerCase() === activeInspectedRegistration.team_name.toLowerCase()
+                    ).length} logged
+                  </span>
+                </div>
+                {(() => {
+                  const teamLogs = auditLogs.filter(
+                    (l) =>
+                      l.target_id === activeInspectedRegistration.id ||
+                      l.team_name.toLowerCase() === activeInspectedRegistration.team_name.toLowerCase()
+                  );
+                  if (teamLogs.length === 0) {
+                    return (
+                      <p className="admin-muted" style={{ fontSize: "0.82rem", margin: 0 }}>
+                        No decisions recorded for this team yet. When an administrator approves, rejects, or revokes this team, the action will appear here.
+                      </p>
+                    );
+                  }
+                  return (
+                    <div className="admin-drawer-audit-list">
+                      {teamLogs.map((log) => (
+                        <div key={log.id} className="admin-drawer-audit-item">
+                          <div className="admin-drawer-audit-item-top">
+                            <span className={`admin-audit-badge is-${log.action}`}>
+                              {log.action.toUpperCase()}
+                            </span>
+                            <span className="admin-drawer-audit-time">{formatTimestamp(log.timestamp)}</span>
+                          </div>
+                          <div className="admin-drawer-audit-meta">
+                            <span>By <strong>{log.admin_name || "Admin"}</strong></span>
+                            {log.admin_email && <span className="admin-muted"> ({log.admin_email})</span>}
+                          </div>
+                          {log.details && (
+                            <p className="admin-drawer-audit-details">{log.details}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
               </section>
             </div>
 
