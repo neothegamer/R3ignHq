@@ -353,9 +353,29 @@ export default function AdminClient() {
   const [auditActionFilter, setAuditActionFilter] = useState<string>("all");
 
   const [registrations, setRegistrations] = useState<Registration[]>([]);
+  const [organizations, setOrganizations] = useState<OrgItem[]>([]);
+  const [gameAccounts, setGameAccounts] = useState<GameAccount[]>([]);
+  const [events, setEvents] = useState<EventRow[]>([]);
+  const [news, setNews] = useState<NewsPost[]>([]);
+  const [awards, setAwards] = useState<AwardWinner[]>([]);
+  const [highlights, setHighlights] = useState<Highlight[]>([]);
+  const [admins, setAdmins] = useState<AdminUser[]>([]);
+  const [reports, setReports] = useState<PlayerReport[]>([]);
+
   const [inspectingRegistration, setInspectingRegistration] = useState<Registration | null>(null);
   const [inspectingVerification, setInspectingVerification] = useState<GameAccount | null>(null);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
+  const [editing, setEditing] = useState(false);
+  const [lookupValue, setLookupValue] = useState("");
+  const [profileMatch, setProfileMatch] = useState<ProfileMatch | null>(null);
+  const [lookupError, setLookupError] = useState<string | null>(null);
+  const [lookingUp, setLookingUp] = useState(false);
+  const [page, setPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const currentAdminInfo = useMemo(() => {
     if (!userId) {
@@ -503,25 +523,6 @@ export default function AdminClient() {
       }).catch(() => {});
     }
   }, []);
-  const [organizations, setOrganizations] = useState<OrgItem[]>([]);
-  const [gameAccounts, setGameAccounts] = useState<GameAccount[]>([]);
-  const [events, setEvents] = useState<EventRow[]>([]);
-  const [news, setNews] = useState<NewsPost[]>([]);
-  const [awards, setAwards] = useState<AwardWinner[]>([]);
-  const [highlights, setHighlights] = useState<Highlight[]>([]);
-  const [admins, setAdmins] = useState<AdminUser[]>([]);
-  const [reports, setReports] = useState<PlayerReport[]>([]);
-
-  const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
-  const [editing, setEditing] = useState(false);
-  const [lookupValue, setLookupValue] = useState("");
-  const [profileMatch, setProfileMatch] = useState<ProfileMatch | null>(null);
-  const [lookupError, setLookupError] = useState<string | null>(null);
-  const [lookingUp, setLookingUp] = useState(false);
-  const [page, setPage] = useState(1);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const loadData = useCallback(async () => {
     setLoading(true);
